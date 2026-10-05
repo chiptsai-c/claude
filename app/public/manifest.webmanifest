@@ -1,0 +1,16 @@
+{
+  "name": "Prompt to Pocket",
+  "short_name": "Prompt2Pocket",
+  "description": "Watch Claude Code turn one sentence into a mobile app.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#11162a",
+  "theme_color": "#11162a",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

@@ -1,0 +1,170 @@
+{
+  "title": "Prompt to Pocket",
+  "tagline": "Claude Code showcase",
+  "intro": {
+    "kicker": "90 seconds · 4 scenes",
+    "title": "Watch one sentence become a mobile app.",
+    "lede": "Claude Code plans the work, splits it across helpers, fixes its own bugs and ships after you approve. Follow along on the phone."
+  },
+  "outro": {
+    "title": "From prompt to pocket.",
+    "lede": "One sentence, one plan, three helpers, one bug squashed and one human approval.",
+    "cta": "Want to try this with your team? Ask SEA IT about the Claude Code pilot."
+  },
+  "payoff": {
+    "label": "In this demo",
+    "stats": [
+      { "value": 14, "label": "files written" },
+      { "value": 12, "label": "tests passing" },
+      { "value": 1, "label": "bug fixed before review" },
+      { "value": 1, "label": "human approval" }
+    ]
+  },
+  "scenes": [
+    {
+      "id": "plan",
+      "name": "Plan",
+      "eyebrow": "Plan mode",
+      "title": "One sentence in. A plan out.",
+      "lede": "You describe the app in plain words. Claude Code reads the project and proposes a step-by-step plan. Nothing is written until you approve it.",
+      "note": "You can edit the plan before you approve it, or ask for a different approach.",
+      "script": [
+        { "do": "phone", "build": 0 },
+        { "do": "wait", "ms": 500 },
+        { "do": "type", "text": "Build a mobile app where staff raise IT service requests, track their status and get notified when something changes." },
+        { "do": "wait", "ms": 500 },
+        { "do": "line", "text": "{dim:● Reading project…} empty folder, starting fresh" },
+        { "do": "wait", "ms": 700 },
+        { "do": "line", "text": "{acc:Plan} {dim:· plan mode, no files changed yet}", "style": "head" },
+        {
+          "do": "lines",
+          "style": "plan",
+          "gapMs": 380,
+          "items": [
+            "Scaffold an Expo app with 3 screens",
+            "Build a mock ticket service (ServiceNow-style API)",
+            "Add status badges and push notifications",
+            "Write a test for every request status",
+            "Commit, push and open a pull request"
+          ]
+        },
+        { "do": "ask", "question": "Approve this plan?", "answer": "Yes, go ahead" },
+        { "do": "line", "text": "{ok:✓ Plan approved.} Starting work." }
+      ]
+    },
+    {
+      "id": "subagents",
+      "name": "Subagents",
+      "eyebrow": "Parallel subagents",
+      "title": "Three helpers. One app.",
+      "lede": "Claude splits the work. One helper builds the screens, one builds a mock ticket service and one writes tests. The phone fills in as they finish.",
+      "note": "Each helper works in its own context. All their changes land in one diff that you review.",
+      "script": [
+        { "do": "phone", "build": 0 },
+        { "do": "line", "text": "{acc:Splitting the work across 3 subagents}" },
+        { "do": "wait", "ms": 400 },
+        {
+          "do": "lanes",
+          "ticks": 18,
+          "tickMs": 260,
+          "lanes": [
+            { "name": "UI", "desc": "screens and components", "speed": 6.4 },
+            { "name": "API", "desc": "mock ticket service", "speed": 9 },
+            { "name": "Tests", "desc": "one test per status", "speed": 5.6 }
+          ],
+          "events": {
+            "3": [{ "do": "line", "text": "{tag:UI}    {add:+ src/App.tsx}" }, { "do": "phone", "build": 1 }],
+            "5": [{ "do": "line", "text": "{tag:API}   {add:+ src/api/tickets.ts}" }],
+            "7": [{ "do": "line", "text": "{tag:UI}    {add:+ src/screens/RequestList.tsx}" }, { "do": "phone", "build": 2 }],
+            "9": [{ "do": "line", "text": "{tag:API}   {add:+ src/api/mockData.ts}" }],
+            "10": [{ "do": "phone", "build": 3 }],
+            "12": [{ "do": "line", "text": "{tag:Tests} {add:+ src/__tests__/status.test.ts}" }],
+            "14": [{ "do": "line", "text": "{tag:UI}    {add:+ src/screens/NewRequest.tsx}" }, { "do": "phone", "build": 4 }],
+            "16": [{ "do": "line", "text": "{tag:Tests} {add:+ src/__tests__/requests.test.ts}" }]
+          }
+        },
+        { "do": "line", "text": "{ok:✓ All three done.} 14 files written." },
+        { "do": "sound", "name": "chime" }
+      ]
+    },
+    {
+      "id": "self-heal",
+      "name": "Self-heal",
+      "eyebrow": "Run tests, fix failures",
+      "title": "It finds its own bugs.",
+      "lede": "Claude runs the test suite, reads the failure, fixes the cause and runs the tests again.",
+      "note": "You still review the fix. Tests only catch what they cover.",
+      "hint": "Tap the bug on the phone to squash it",
+      "script": [
+        { "do": "phone", "build": 4, "bug": true },
+        { "do": "line", "text": "{pr:$} npm test" },
+        { "do": "wait", "ms": 500 },
+        {
+          "do": "lines",
+          "gapMs": 140,
+          "items": [
+            "{ok:✓} renders the request list",
+            "{ok:✓} creates a new request",
+            "{ok:✓} shows a badge for in_progress",
+            "{ok:✓} shows a badge for resolved",
+            "{ok:✓} sends a notification on status change",
+            "{dim:  … 6 more passed}"
+          ]
+        },
+        { "do": "line", "text": "{bad:✗ shows a badge for pending_approval}" },
+        { "do": "line", "text": "{dim:  expected \"Pending approval\", got \"status.pending_approval\"}" },
+        { "do": "line", "text": "Tests: {bad:1 failed}, {ok:11 passed}" },
+        { "do": "awaitBug", "timeoutMs": 5500 },
+        { "do": "squish" },
+        { "do": "line", "text": "{dim:● Reading src/status.ts…} pending_approval has no label", "style": "head" },
+        { "do": "wait", "ms": 700 },
+        {
+          "do": "diff",
+          "lines": [
+            { "op": " ", "text": "export const STATUS = {" },
+            { "op": " ", "text": "  in_progress: { label: \"In progress\", tone: \"info\" }," },
+            { "op": "+", "text": "  pending_approval: { label: \"Pending approval\", tone: \"warn\" }," },
+            { "op": " ", "text": "  resolved: { label: \"Resolved\", tone: \"ok\" }," },
+            { "op": " ", "text": "};" }
+          ]
+        },
+        { "do": "wait", "ms": 800 },
+        { "do": "phone", "bug": false },
+        { "do": "sound", "name": "pop" },
+        { "do": "line", "text": "{pr:$} npm test" },
+        { "do": "wait", "ms": 600 },
+        { "do": "line", "text": "Tests: {ok:12 passed}, 0 failed" },
+        { "do": "sound", "name": "chime" }
+      ]
+    },
+    {
+      "id": "ship",
+      "name": "Ship",
+      "eyebrow": "Permissions and shipping",
+      "title": "You approve. It ships.",
+      "lede": "Pushing code needs your permission. After you approve, Claude commits, pushes, opens a pull request and CI checks the build.",
+      "note": "Admins decide which actions always need a human to approve them.",
+      "script": [
+        { "do": "phone", "build": 4 },
+        { "do": "line", "text": "{dim:● All tests pass. Ready to commit and push.}" },
+        { "do": "wait", "ms": 500 },
+        { "do": "permission", "command": "git push -u origin feature/it-requests", "deniedText": "{warn:Denied.} Claude stops and waits. Nothing leaves your machine." },
+        { "do": "wait", "ms": 300 },
+        { "do": "line", "text": "{pr:$} git commit -m \"feat: IT service request app\"" },
+        { "do": "line", "text": "{ok:✓} 1 commit, 14 files" },
+        { "do": "wait", "ms": 500 },
+        { "do": "line", "text": "{ok:✓} Pushed and opened a pull request" },
+        { "do": "wait", "ms": 400 },
+        { "do": "line", "text": "{acc:CI checks}", "style": "head" },
+        { "do": "checks", "gapMs": 550, "items": ["Lint", "Unit tests (12)", "Build iOS", "Build Android"] },
+        { "do": "wait", "ms": 300 },
+        { "do": "phone", "launched": true },
+        { "do": "wait", "ms": 3000 },
+        { "do": "phone", "launched": false },
+        { "do": "wait", "ms": 400 },
+        { "do": "phone", "notified": true },
+        { "do": "payoff" }
+      ]
+    }
+  ]
+}
