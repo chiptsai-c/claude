@@ -1,0 +1,575 @@
+<title>Prompt to Pocket</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a demo stage. Story copy + live console on the left, a phone that builds itself on the right; stacks copy > phone > console on narrow screens. Deliberately single dark look. */
+:root {
+  color-scheme: dark;
+  --bg: #11162a;
+  --panel: #0b0f1f;
+  --line: #2a3357;
+  --fg: #e9ecf6;
+  --muted: #9aa3c2;
+  --accent: #ee8a5e;
+  --ok: #56cfa6;
+  --warn: #f3bd55;
+  --bad: #ff6b7a;
+  --info: #7aa2ff;
+  --frame: #05070f;
+  --app-bg: #f4f6fb;
+  --app-card: #ffffff;
+  --app-fg: #1a2140;
+  --app-muted: #6b7392;
+  --app-brand: #2f5bea;
+  --display: "Unbounded", "Segoe UI", system-ui, sans-serif;
+  --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+}
+html, body { height: 100%; }
+[hidden] { display: none !important; }
+body { overflow-x: clip; }
+body {
+  margin: 0;
+  padding-inline: 16px;
+  background:
+    radial-gradient(circle at 1px 1px, rgba(154,163,194,.10) 1px, transparent 0) 0 0 / 22px 22px,
+    var(--bg);
+  color: var(--fg);
+  font: 16px/1.55 var(--body);
+}
+.wrap { max-width: 1120px; margin: 0 auto; padding-block: 16px 0; display: flex; flex-direction: column; gap: 20px; min-height: 100%; }
+
+header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.brand { display: flex; align-items: center; gap: 12px; }
+.mark { width: 38px; height: 38px; border-radius: 10px; background: var(--accent); color: var(--panel); display: grid; place-items: center; font: 700 15px var(--mono); }
+.brand b { display: block; font: 700 18px/1.1 var(--display); letter-spacing: .01em; }
+.brand small { display: block; font: 12px var(--mono); color: var(--muted); letter-spacing: .04em; }
+.counter { font: 13px var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+
+.stage { display: grid; gap: 24px; grid-template-columns: minmax(0, 1fr); grid-template-areas: "copy" "phone" "console"; flex: 1; align-content: start; }
+@media (min-width: 880px) {
+  .stage { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "copy phone" "console phone"; column-gap: 56px; }
+}
+
+/* Copy */
+.copy { grid-area: copy; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+.copy.enter > * { animation: rise .6s cubic-bezier(.2,.8,.2,1) both; }
+.copy.enter > *:nth-child(2) { animation-delay: .06s; }
+.copy.enter > *:nth-child(3) { animation-delay: .12s; }
+.copy.enter > *:nth-child(4) { animation-delay: .18s; }
+@keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+.eyebrow { font: 600 12px var(--mono); text-transform: uppercase; letter-spacing: .14em; color: var(--accent); }
+h1 { margin: 0; font: 700 clamp(28px, 4.4vw, 46px)/1.08 var(--display); text-wrap: balance; letter-spacing: -.01em; }
+.lede { margin: 0; color: var(--muted); font-size: 17px; max-width: 54ch; }
+.note { font-size: 14px; color: var(--muted); max-width: 60ch; }
+.note span { font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .12em; color: var(--fg); margin-right: 8px; }
+.hint { align-self: flex-start; font: 600 13px var(--mono); color: var(--panel); background: var(--warn); padding: 6px 12px; border-radius: 999px; animation: nudge 1.6s ease-in-out infinite; }
+@keyframes nudge { 50% { transform: translateX(6px); } }
+
+.payoff { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; max-width: 520px; }
+@media (min-width: 560px) { .payoff { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.payoff-label { grid-column: 1 / -1; font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .12em; color: var(--muted); }
+.stat { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: var(--panel); }
+.stat b { display: block; font: 700 26px/1.1 var(--display); color: var(--ok); font-variant-numeric: tabular-nums; }
+.stat span { font-size: 12px; color: var(--muted); line-height: 1.3; display: block; }
+
+/* Console */
+.console { grid-area: console; min-width: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; }
+.con-bar { display: flex; align-items: center; gap: 7px; padding: 10px 14px; border-bottom: 1px solid var(--line); font: 12px var(--mono); color: var(--muted); }
+.con-bar i { width: 10px; height: 10px; border-radius: 50%; background: var(--line); }
+.con-bar span { margin-left: 8px; }
+.con-body { font: 13px/1.6 var(--mono); padding: 14px; height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 3px; scroll-behavior: smooth; }
+.ln { white-space: pre-wrap; overflow-wrap: anywhere; animation: lnIn .28s ease-out both; }
+@keyframes lnIn { from { opacity: 0; transform: translateX(-6px); } to { opacity: 1; transform: none; } }
+.pr { color: var(--accent); font-weight: 600; }
+.prompt { color: var(--fg); margin-bottom: 6px; }
+.caret { display: inline-block; width: .55em; height: 1.05em; background: var(--accent); vertical-align: text-bottom; margin-left: 2px; animation: blink 1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+.dim { color: var(--muted); }
+.acc { color: var(--accent); font-weight: 600; }
+.ok { color: var(--ok); }
+.bad { color: var(--bad); }
+.warn { color: var(--warn); }
+.head { margin-top: 6px; }
+.plan { display: flex; gap: 10px; }
+.box { flex: none; width: .9em; height: .9em; margin-top: .35em; border: 1.5px solid var(--muted); border-radius: 3px; }
+.pill { display: inline-block; padding: 0 10px; border-radius: 999px; border: 1px solid var(--accent); color: var(--accent); transition: background .2s, color .2s; }
+.pill.pressed { background: var(--accent); color: var(--panel); }
+.lane { display: grid; grid-template-columns: 4.2em minmax(0, 1fr) 3.4em; gap: 2px 10px; align-items: center; }
+.lane-n { font-weight: 600; color: var(--info); }
+.lane-d { color: var(--muted); }
+.pct { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }
+.bar { grid-column: 2 / 4; height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--info), var(--ok)); transition: width .25s linear; }
+.tag { display: inline-block; min-width: 3.6em; color: var(--info); }
+.add { color: var(--ok); }
+.diff { margin: 4px 0; padding: 8px 10px; border-radius: 8px; background: rgba(122,162,255,.07); border: 1px solid var(--line); overflow-x: auto; white-space: pre; font: inherit; }
+.diff .p { color: var(--ok); background: rgba(86,207,166,.12); display: block; }
+.diff .c { color: var(--muted); display: block; }
+.perm { border: 1px solid var(--accent); background: rgba(238,138,94,.08); border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 8px; margin: 4px 0; white-space: normal; }
+.perm-t { font-weight: 600; color: var(--accent); }
+.perm code { font: inherit; color: var(--fg); overflow-wrap: anywhere; }
+.perm-b { display: flex; flex-wrap: wrap; gap: 8px; }
+.perm.done .perm-b { display: none; }
+.perm-ok { color: var(--ok); display: none; }
+.perm.done .perm-ok { display: block; }
+.check { display: flex; gap: 10px; }
+.spin { display: inline-block; width: .9em; height: .9em; margin-top: .3em; border: 2px solid var(--line); border-top-color: var(--warn); border-radius: 50%; animation: spin .7s linear infinite; flex: none; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.tick { color: var(--ok); width: .9em; flex: none; }
+
+/* Buttons */
+button { font: 600 14px var(--body); border-radius: 999px; padding: 9px 16px; cursor: pointer; border: 1px solid var(--line); background: var(--panel); color: var(--fg); transition: border-color .2s, background .2s, transform .1s; }
+button:hover { border-color: var(--muted); }
+button:active { transform: scale(.97); }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btn-primary, .btn-ok { background: var(--accent); border-color: var(--accent); color: var(--panel); }
+.btn-primary:hover, .btn-ok:hover { border-color: var(--fg); }
+.btn-ok.pressed { box-shadow: 0 0 0 4px rgba(238,138,94,.35); }
+.btn-no { background: transparent; }
+
+/* Phone */
+.phone-col { grid-area: phone; display: flex; justify-content: center; align-items: flex-start; position: relative; }
+.phone-col::before { content: ""; position: absolute; width: 100%; max-width: 420px; aspect-ratio: 1; top: 10%; border-radius: 50%; background: radial-gradient(closest-side, rgba(238,138,94,.22), transparent); pointer-events: none; animation: breathe 6s ease-in-out infinite; }
+@keyframes breathe { 50% { transform: scale(1.08); opacity: .7; } }
+.phone { --pw: min(290px, 72vw); position: relative; width: var(--pw); max-width: 100%; aspect-ratio: 9 / 19; background: var(--frame); border-radius: calc(var(--pw) * .15); padding: calc(var(--pw) * .035); box-shadow: 0 0 0 1px #2a3357, 0 30px 60px -20px rgba(0,0,0,.6); }
+@media (min-width: 880px) { .phone { position: sticky; top: 24px; } }
+.screen { container-type: inline-size; position: relative; height: 100%; border-radius: calc(var(--pw) * .12); overflow: hidden; background: var(--app-bg); color: var(--app-fg); font-family: var(--body); }
+.in { font-size: 4.3cqi; height: 100%; display: flex; flex-direction: column; }
+.sb { display: flex; justify-content: space-between; padding: 1.1em 1.6em .4em; font-size: .8em; font-weight: 600; }
+.notch { position: absolute; top: .55em; left: 50%; width: 30%; height: 1.5em; translate: -50% 0; border-radius: 1em; background: var(--frame); }
+.bp { opacity: 0; transform: translateY(14px) scale(.97); transition: opacity .45s ease, transform .6s cubic-bezier(.2,.9,.25,1.2); transition-delay: var(--d, 0ms); }
+.bp.on { opacity: 1; transform: none; }
+.empty { position: absolute; inset: 22% 10% 22%; border: 2px dashed #c9cfe3; border-radius: 1em; display: grid; place-content: center; text-align: center; gap: .3em; color: var(--app-muted); font-size: .9em; transition: opacity .4s; }
+.empty b { color: var(--app-fg); font-size: 1.1em; }
+.phone:not([data-build="0"]) .empty { opacity: 0; }
+.appbar { display: flex; justify-content: space-between; align-items: center; padding: .6em 1.2em .5em; }
+.appbar small { display: block; font-size: .72em; color: var(--app-brand); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+.appbar strong { font: 700 1.35em/1.15 var(--display); }
+.avatar { width: 2.2em; height: 2.2em; border-radius: 50%; background: var(--app-brand); color: #fff; display: grid; place-items: center; font-size: .8em; font-weight: 600; }
+.chips { display: flex; gap: .4em; padding: .3em 1.2em .7em; }
+.chip { font-size: .75em; padding: .3em .9em; border-radius: 1em; background: #e4e8f4; color: var(--app-muted); font-weight: 600; }
+.chip.on { background: var(--app-fg); color: #fff; }
+.list { display: flex; flex-direction: column; gap: .55em; padding: 0 .9em; }
+.card { display: grid; grid-template-columns: 2.4em minmax(0, 1fr); gap: .2em .7em; align-items: center; background: var(--app-card); border-radius: .9em; padding: .7em .8em; box-shadow: 0 1px 3px rgba(26,33,64,.08); }
+.ic { grid-row: span 2; width: 2.4em; height: 2.4em; border-radius: .7em; display: grid; place-items: center; font-size: .7em; font-weight: 700; }
+.ic.a { background: #e3eaff; color: var(--app-brand); }
+.ic.b { background: #fff2dc; color: #a26a00; }
+.ic.c { background: #ddf5ec; color: #17805f; }
+.card b { font-size: .88em; line-height: 1.2; }
+.meta { display: flex; justify-content: space-between; align-items: center; gap: .4em; font-size: .7em; color: var(--app-muted); }
+.badge { font-size: .95em; font-weight: 600; padding: .15em .6em; border-radius: 1em; white-space: nowrap; transition: all .4s; }
+.badge.info { background: #e3eaff; color: var(--app-brand); }
+.badge.warn { background: #fff2dc; color: #8a5a00; }
+.badge.ok { background: #ddf5ec; color: #17805f; }
+.badge.broken { background: transparent; color: #d0263a; outline: 1.5px dashed #d0263a; font-family: var(--mono); font-size: .8em; }
+.badge.fixed { animation: pop .5s cubic-bezier(.2,.9,.3,1.6); }
+@keyframes pop { 0% { transform: scale(.6); } 100% { transform: none; } }
+.fab { position: absolute; right: 1em; bottom: 5.2em; background: var(--app-brand); color: #fff; font-size: .82em; font-weight: 600; padding: .8em 1.1em; border-radius: 1.2em; box-shadow: 0 6px 16px -4px rgba(47,91,234,.6); }
+.tabbar { position: absolute; left: 0; right: 0; bottom: 0; display: flex; justify-content: space-around; padding: .8em .5em 1.4em; background: var(--app-card); border-top: 1px solid #e4e8f4; font-size: .7em; color: var(--app-muted); font-weight: 600; }
+.tabbar .on { color: var(--app-brand); }
+
+.bug { position: absolute; width: 9cqi; height: 9cqi; display: none; cursor: pointer; z-index: 5; border: 0; padding: 0; background: none; border-radius: 50%; animation: crawl 7s linear infinite; }
+.bug svg { width: 100%; height: 100%; display: block; }
+.phone.buggy .bug { display: block; }
+.bug.squashed { animation: none; transform: scale(1.4, .25); opacity: 0; transition: transform .25s, opacity .6s .3s; pointer-events: none; }
+@keyframes crawl {
+  0% { left: 70%; top: 50%; rotate: -90deg; }
+  25% { left: 18%; top: 50%; rotate: -90deg; }
+  30% { left: 14%; top: 45%; rotate: 0deg; }
+  45% { left: 14%; top: 33%; rotate: 0deg; }
+  50% { left: 20%; top: 30%; rotate: 90deg; }
+  75% { left: 74%; top: 30%; rotate: 90deg; }
+  80% { left: 78%; top: 35%; rotate: 180deg; }
+  95% { left: 78%; top: 48%; rotate: 180deg; }
+  100% { left: 70%; top: 50%; rotate: 270deg; }
+}
+
+.launch { position: absolute; inset: 0; z-index: 8; display: grid; place-items: center; text-align: center; background: linear-gradient(180deg, #1b2450, #11162a 60%, #3a2130); color: var(--fg); opacity: 0; pointer-events: none; transition: opacity .5s; }
+.phone.launched .launch { opacity: 1; }
+.rocket { width: 30cqi; }
+.phone.launched .rocket { animation: lift 2.4s cubic-bezier(.5,0,.75,0) .4s both; }
+@keyframes lift { 0% { transform: translateY(0); } 15% { transform: translateY(4%) rotate(-1deg); } 25% { transform: translateY(2%) rotate(1deg); } 100% { transform: translateY(-260%); } }
+.launch p { font-size: 4.2cqi; margin: 1em 1.5em 0; color: var(--muted); }
+.launch p b { display: block; color: var(--fg); font: 700 5.4cqi var(--display); margin-bottom: .3em; }
+.toast { position: absolute; top: 2.6em; left: .7em; right: .7em; z-index: 7; font-size: 4.2cqi; background: rgba(255,255,255,.96); border-radius: 1em; padding: .7em .9em; box-shadow: 0 10px 24px -8px rgba(26,33,64,.35); transform: translateY(-160%); transition: transform .6s cubic-bezier(.2,.9,.3,1.3); }
+.phone.notified .toast { transform: none; }
+.toast small { display: flex; justify-content: space-between; color: var(--app-muted); font-size: .75em; font-weight: 600; }
+.toast div { font-size: .85em; margin-top: .2em; }
+
+/* Nav */
+nav { position: sticky; bottom: 0; padding-block: 12px calc(12px + env(safe-area-inset-bottom, 0px)); background: linear-gradient(transparent, var(--bg) 30%); display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.dots { display: flex; gap: 8px; flex: 1; justify-content: center; min-width: 120px; }
+.dot { width: 34px; height: 8px; padding: 0; border-radius: 4px; background: var(--line); border: 0; }
+.dot[aria-current="true"] { background: var(--accent); }
+@media (max-width: 520px) { .dots { order: -1; flex-basis: 100%; } nav { gap: 8px; } nav button:not(.dot) { flex: 1; padding: 8px 10px; font-size: 13px; } .long { display: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+  .bug { animation: none; left: 70%; top: 44%; }
+}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <div class="mark" aria-hidden="true">›_</div>
+      <div><b>Prompt to Pocket</b><small>Claude Code showcase · prototype</small></div>
+    </div>
+    <div class="counter" id="counter">Scene 1 of 4</div>
+  </header>
+
+  <main class="stage" id="stage">
+    <section class="copy" id="copy" aria-live="polite">
+      <div class="eyebrow" id="eyebrow"></div>
+      <h1 id="title"></h1>
+      <p class="lede" id="lede"></p>
+      <div class="note" id="note"></div>
+      <div class="hint" id="hint" hidden>Tap the bug on the phone to squash it</div>
+      <div class="payoff" id="payoff" hidden>
+        <div class="payoff-label">In this demo</div>
+        <div class="stat"><b data-to="14">0</b><span>files written</span></div>
+        <div class="stat"><b data-to="12">0</b><span>tests passing</span></div>
+        <div class="stat"><b data-to="1">0</b><span>bug fixed before review</span></div>
+        <div class="stat"><b data-to="1">0</b><span>human approval</span></div>
+      </div>
+    </section>
+
+    <div class="phone-col">
+      <div class="phone" id="phone" data-build="0">
+        <div class="screen">
+          <div class="in">
+            <div class="notch"></div>
+            <div class="sb"><span>9:41</span><span>5G ▮</span></div>
+            <div class="empty"><b>Empty project</b><span>Waiting for a plan</span></div>
+            <div class="appbar bp" data-at="1">
+              <div><small>IT Help</small><strong>My requests</strong></div>
+              <span class="avatar">AL</span>
+            </div>
+            <div class="chips bp" data-at="2">
+              <span class="chip on">All</span><span class="chip">Open</span><span class="chip">Resolved</span>
+            </div>
+            <div class="list">
+              <div class="card bp" data-at="3" style="--d:0ms">
+                <div class="ic a">LAP</div><b>Laptop replacement</b>
+                <div class="meta"><span>REQ0012841</span><span class="badge info">In progress</span></div>
+              </div>
+              <div class="card bp" data-at="3" style="--d:140ms">
+                <div class="ic b">VPN</div><b>VPN access for vendor</b>
+                <div class="meta"><span>REQ0012867</span><span class="badge warn" id="vpnBadge">Pending approval</span></div>
+              </div>
+              <div class="card bp" data-at="3" style="--d:280ms">
+                <div class="ic c">MON</div><b>Second monitor</b>
+                <div class="meta"><span>REQ0012790</span><span class="badge ok">Resolved</span></div>
+              </div>
+            </div>
+            <div class="fab bp" data-at="4">+ New request</div>
+            <div class="tabbar bp" data-at="4"><span class="on">Requests</span><span>Approvals</span><span>Profile</span></div>
+          </div>
+
+          <button class="bug" id="bug" aria-label="Squash the bug">
+            <svg viewBox="0 0 40 40" aria-hidden="true">
+              <g stroke="#2b1a1a" stroke-width="2.4" stroke-linecap="round" fill="none">
+                <path d="M12 16 4 12M12 22H3M12 28 4 33M28 16l8-4M28 22h9M28 28l8 5M17 7l-3-4M23 7l3-4"/>
+              </g>
+              <ellipse cx="20" cy="24" rx="9" ry="12" fill="#d0263a"/>
+              <circle cx="20" cy="10" r="5" fill="#2b1a1a"/>
+              <path d="M20 13v23" stroke="#2b1a1a" stroke-width="1.6"/>
+              <circle cx="16" cy="21" r="2" fill="#2b1a1a"/><circle cx="24" cy="27" r="2" fill="#2b1a1a"/><circle cx="16" cy="30" r="1.6" fill="#2b1a1a"/>
+            </svg>
+          </button>
+
+          <div class="toast"><small><span>IT HELP</span><span>now</span></small><div>Your VPN access request was approved.</div></div>
+
+          <div class="launch">
+            <div>
+              <svg class="rocket" viewBox="0 0 60 100" aria-hidden="true">
+                <path d="M30 4C44 16 46 40 42 62H18C14 40 16 16 30 4Z" fill="#e9ecf6"/>
+                <circle cx="30" cy="34" r="7" fill="#7aa2ff" stroke="#11162a" stroke-width="3"/>
+                <path d="M18 50 6 66v10l14-8ZM42 50l12 16v10l-14-8Z" fill="#ee8a5e"/>
+                <path d="M22 64h16l-3 10h-10Z" fill="#9aa3c2"/>
+                <path d="M24 74c0 10 6 20 6 20s6-10 6-20Z" fill="#f3bd55"/>
+              </svg>
+              <p><b>Shipped</b>Tests green. Ready for internal testing.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <section class="console" aria-label="Claude Code session">
+      <div class="con-bar"><i></i><i></i><i></i><span>~/it-help-app · claude</span></div>
+      <div class="con-body" id="con"></div>
+    </section>
+  </main>
+
+  <nav aria-label="Scenes">
+    <button id="prev">Back</button>
+    <div class="dots" id="dots"></div>
+    <button id="replay">Replay<span class="long"> scene</span></button>
+    <button id="play" class="btn-primary">Play<span class="long"> Director's Cut</span></button>
+    <button id="next">Next</button>
+  </nav>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const phone = $('#phone'), con = $('#con'), copy = $('#copy'), bug = $('#bug'), badge = $('#vpnBadge');
+const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
+class Cancel extends Error {}
+let runId = 0, cur = 0, auto = false;
+
+function runner() {
+  const id = ++runId;
+  const alive = () => id === runId;
+  return { alive, sleep: ms => new Promise((res, rej) => setTimeout(() => alive() ? res() : rej(new Cancel()), RM ? 0 : ms)) };
+}
+function line(html, cls = '') {
+  const d = document.createElement('div');
+  d.className = 'ln ' + cls;
+  d.innerHTML = html;
+  con.appendChild(d);
+  con.scrollTop = con.scrollHeight;
+  return d;
+}
+async function type(r, el, text, speed = 24) {
+  if (RM) { el.textContent = text; return; }
+  for (let i = 1; i <= text.length; i++) {
+    el.textContent = text.slice(0, i);
+    await r.sleep(speed);
+  }
+}
+function setBuild(n) {
+  phone.dataset.build = n;
+  phone.querySelectorAll('[data-at]').forEach(el => el.classList.toggle('on', +el.dataset.at <= n));
+}
+function setBug(on) {
+  phone.classList.toggle('buggy', on);
+  bug.classList.remove('squashed');
+  badge.classList.remove('fixed');
+  badge.className = on ? 'badge broken' : 'badge warn';
+  badge.textContent = on ? 'status.pending_approval' : 'Pending approval';
+}
+function resetPhone(build, buggy) {
+  phone.classList.remove('launched', 'notified');
+  setBuild(build);
+  setBug(buggy);
+}
+
+let bugResolve = () => {};
+bug.addEventListener('click', () => { bug.classList.add('squashed'); bugResolve(); });
+
+const SCENES = [
+  {
+    name: 'Plan',
+    eyebrow: 'Plan mode',
+    title: 'One sentence in. A plan out.',
+    lede: 'You describe the app in plain words. Claude Code reads the project and proposes a step-by-step plan. Nothing is written until you approve it.',
+    note: 'You can edit the plan before you approve it, or ask for a different approach.',
+    async run(r) {
+      resetPhone(0, false);
+      const p = line('<span class="pr">&gt;</span> <span class="typed"></span><span class="caret"></span>', 'prompt');
+      await r.sleep(500);
+      await type(r, p.querySelector('.typed'), 'Build a mobile app where staff raise IT service requests, track their status and get notified when something changes.');
+      p.querySelector('.caret').remove();
+      await r.sleep(500);
+      line('<span class="dim">● Reading project…</span> empty folder, starting fresh');
+      await r.sleep(700);
+      line('<span class="acc">Plan</span> <span class="dim">· plan mode, no files changed yet</span>', 'head');
+      for (const t of [
+        'Scaffold an Expo app with 3 screens',
+        'Build a mock ticket service (ServiceNow-style API)',
+        'Add status badges and push notifications',
+        'Write a test for every request status',
+        'Commit, push and open a pull request'
+      ]) { line('<span class="box"></span><span>' + t + '</span>', 'plan'); await r.sleep(380); }
+      await r.sleep(400);
+      const ask = line('<span class="dim">Approve this plan?</span> <span class="pill">Yes, go ahead</span>', 'head');
+      await r.sleep(1100);
+      ask.querySelector('.pill').classList.add('pressed');
+      await r.sleep(400);
+      line('<span class="ok">✓ Plan approved.</span> Starting work.');
+    }
+  },
+  {
+    name: 'Subagents',
+    eyebrow: 'Parallel subagents',
+    title: 'Three helpers. One app.',
+    lede: 'Claude splits the work. One helper builds the screens, one builds a mock ticket service and one writes tests. The phone fills in as they finish.',
+    note: 'Each helper works in its own context. All their changes land in one diff that you review.',
+    async run(r) {
+      resetPhone(0, false);
+      line('<span class="acc">Splitting the work across 3 subagents</span>');
+      const lanes = [
+        { n: 'UI', d: 'screens and components', sp: 6.4 },
+        { n: 'API', d: 'mock ticket service', sp: 9 },
+        { n: 'Tests', d: 'one test per status', sp: 5.6 }
+      ];
+      const els = lanes.map(l => line('<span class="lane-n">' + l.n + '</span><span class="lane-d">' + l.d + '</span><span class="pct">0%</span><span class="bar"><i></i></span>', 'lane'));
+      const file = (who, path) => line('<span class="tag">' + who + '</span> <span class="add">+ ' + path + '</span>');
+      const events = {
+        3: () => { file('UI', 'src/App.tsx'); setBuild(1); },
+        5: () => file('API', 'src/api/tickets.ts'),
+        7: () => { file('UI', 'src/screens/RequestList.tsx'); setBuild(2); },
+        9: () => file('API', 'src/api/mockData.ts'),
+        10: () => setBuild(3),
+        12: () => file('Tests', 'src/__tests__/status.test.ts'),
+        14: () => { file('UI', 'src/screens/NewRequest.tsx'); setBuild(4); },
+        16: () => file('Tests', 'src/__tests__/requests.test.ts')
+      };
+      await r.sleep(400);
+      for (let t = 1; t <= 18; t++) {
+        lanes.forEach((l, i) => {
+          const p = Math.min(100, Math.round(t * l.sp));
+          els[i].querySelector('i').style.width = p + '%';
+          els[i].querySelector('.pct').textContent = p + '%';
+        });
+        if (events[t]) events[t]();
+        await r.sleep(260);
+      }
+      line('<span class="ok">✓ All three done.</span> 14 files written.');
+    }
+  },
+  {
+    name: 'Self-heal',
+    eyebrow: 'Run tests, fix failures',
+    title: 'It finds its own bugs.',
+    lede: 'Claude runs the test suite, reads the failure, fixes the cause and runs the tests again.',
+    note: 'You still review the fix. Tests only catch what they cover.',
+    hint: true,
+    async run(r) {
+      resetPhone(4, true);
+      const squashed = new Promise(res => { bugResolve = res; });
+      line('<span class="pr">$</span> npm test');
+      await r.sleep(500);
+      for (const t of ['renders the request list', 'creates a new request', 'shows a badge for in_progress', 'shows a badge for resolved', 'sends a notification on status change']) {
+        line('<span class="ok">✓</span> ' + t); await r.sleep(140);
+      }
+      line('<span class="dim">  … 6 more passed</span>');
+      await r.sleep(200);
+      line('<span class="bad">✗ shows a badge for pending_approval</span>');
+      line('<span class="dim">  expected "Pending approval", got "status.pending_approval"</span>');
+      line('Tests: <span class="bad">1 failed</span>, <span class="ok">11 passed</span>');
+      await Promise.race([r.sleep(5500), squashed]);
+      if (!r.alive()) throw new Cancel();
+      bug.classList.add('squashed');
+      line('<span class="dim">● Reading src/status.ts…</span> pending_approval has no label', 'head');
+      await r.sleep(700);
+      line('<pre class="diff"><span class="c"> export const STATUS = {</span><span class="c">   in_progress: { label: "In progress", tone: "info" },</span><span class="p">+  pending_approval: { label: "Pending approval", tone: "warn" },</span><span class="c">   resolved: { label: "Resolved", tone: "ok" },</span><span class="c"> };</span></pre>');
+      await r.sleep(800);
+      setBug(false);
+      badge.classList.add('fixed');
+      line('<span class="pr">$</span> npm test');
+      await r.sleep(600);
+      line('Tests: <span class="ok">12 passed</span>, 0 failed');
+    }
+  },
+  {
+    name: 'Ship',
+    eyebrow: 'Permissions and shipping',
+    title: 'You approve. It ships.',
+    lede: 'Pushing code needs your permission. After you approve, Claude commits, pushes, opens a pull request and CI checks the build.',
+    note: 'Admins decide which actions always need a human to approve them.',
+    async run(r) {
+      resetPhone(4, false);
+      line('<span class="dim">● All tests pass. Ready to commit and push.</span>');
+      await r.sleep(500);
+      const wrap = line('<div class="perm"><div class="perm-t">Claude wants to run</div><code>git push -u origin feature/it-requests</code><div class="perm-b"><button class="btn-ok" type="button">Approve</button><button class="btn-no" type="button">Deny</button></div><div class="perm-ok">✓ Approved by you</div></div>');
+      const card = wrap.querySelector('.perm'), ok = wrap.querySelector('.btn-ok'), no = wrap.querySelector('.btn-no');
+      let denied = false;
+      await new Promise(res => {
+        ok.onclick = res;
+        no.onclick = () => { if (!denied) { denied = true; line('<span class="warn">Denied.</span> Claude stops and waits. Nothing leaves your machine.'); } };
+        if (auto) setTimeout(() => { if (r.alive()) { ok.classList.add('pressed'); setTimeout(res, RM ? 0 : 350); } }, RM ? 0 : 2200);
+      });
+      if (!r.alive()) throw new Cancel();
+      card.classList.add('done');
+      await r.sleep(300);
+      line('<span class="pr">$</span> git commit -m "feat: IT service request app"');
+      line('<span class="ok">✓</span> 1 commit, 14 files');
+      await r.sleep(500);
+      line('<span class="ok">✓</span> Pushed and opened a pull request');
+      await r.sleep(400);
+      line('<span class="acc">CI checks</span>', 'head');
+      const checks = ['Lint', 'Unit tests (12)', 'Build iOS', 'Build Android'].map(n => line('<span class="spin"></span><span>' + n + '</span>', 'check'));
+      for (const c of checks) {
+        await r.sleep(550);
+        c.querySelector('.spin').outerHTML = '<span class="tick">✓</span>';
+      }
+      await r.sleep(300);
+      phone.classList.add('launched');
+      await r.sleep(3000);
+      phone.classList.remove('launched');
+      await r.sleep(400);
+      phone.classList.add('notified');
+      showPayoff(r);
+    }
+  }
+];
+
+async function showPayoff(r) {
+  const p = $('#payoff');
+  p.hidden = false;
+  const nums = [...p.querySelectorAll('b')];
+  for (let s = 1; s <= 20; s++) {
+    nums.forEach(b => { b.textContent = Math.round(+b.dataset.to * s / 20); });
+    await r.sleep(40);
+  }
+}
+
+const dots = $('#dots');
+SCENES.forEach((s, i) => {
+  const b = document.createElement('button');
+  b.className = 'dot';
+  b.setAttribute('aria-label', 'Scene ' + (i + 1) + ': ' + s.name);
+  b.onclick = () => { setAuto(false); go(i); };
+  dots.appendChild(b);
+});
+
+function renderCopy(s) {
+  $('#eyebrow').textContent = s.eyebrow;
+  $('#title').textContent = s.title;
+  $('#lede').textContent = s.lede;
+  $('#note').innerHTML = '<span>In practice</span>' + s.note;
+  $('#hint').hidden = !s.hint;
+  $('#payoff').hidden = true;
+  copy.classList.remove('enter'); void copy.offsetWidth; copy.classList.add('enter');
+}
+
+function go(i) {
+  cur = (i + SCENES.length) % SCENES.length;
+  const s = SCENES[cur];
+  const r = runner();
+  bugResolve = () => {};
+  con.innerHTML = '';
+  renderCopy(s);
+  $('#counter').textContent = 'Scene ' + (cur + 1) + ' of ' + SCENES.length + ' · ' + s.name;
+  [...dots.children].forEach((d, k) => d.setAttribute('aria-current', k === cur ? 'true' : 'false'));
+  s.run(r)
+    .then(async () => { if (auto) { await r.sleep(cur === SCENES.length - 1 ? 5000 : 2800); if (auto) go(cur + 1); } })
+    .catch(e => { if (!(e instanceof Cancel)) console.error(e); });
+}
+
+function setAuto(on) {
+  auto = on;
+  $('#play').innerHTML = on ? 'Pause' : 'Play<span class="long"> Director\'s Cut</span>';
+}
+$('#play').onclick = () => { if (auto) setAuto(false); else { setAuto(true); go(0); } };
+$('#next').onclick = () => { setAuto(false); go(cur + 1); };
+$('#prev').onclick = () => { setAuto(false); go(cur - 1); };
+$('#replay').onclick = () => go(cur);
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight') $('#next').click();
+  if (e.key === 'ArrowLeft') $('#prev').click();
+});
+let tx = null;
+$('#stage').addEventListener('touchstart', e => { tx = e.touches[0].clientX; }, { passive: true });
+$('#stage').addEventListener('touchend', e => {
+  if (tx === null) return;
+  const dx = e.changedTouches[0].clientX - tx; tx = null;
+  if (Math.abs(dx) > 60) (dx < 0 ? $('#next') : $('#prev')).click();
+});
+
+go(0);
+</script>
