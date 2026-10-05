@@ -140,6 +140,8 @@ function Bug({ squashed, active, onSquash, screenRef }: {
   const [splat, setSplat] = useState<Splat | null>(null);
 
   // Freeze the bug where it was hit, or it jumps when the crawl animation stops.
+  // The "squashed" class (which stops the crawl) is only added once the position is
+  // captured, so this reads the bug's live crawl position, not its resting one.
   useLayoutEffect(() => {
     const el = ref.current;
     if (!squashed || !el || frozen) return;
@@ -166,7 +168,7 @@ function Bug({ squashed, active, onSquash, screenRef }: {
       )}
       <button
         ref={ref}
-        className={'bug' + (squashed ? ' squashed' : '')}
+        className={'bug' + (frozen ? ' squashed' : '')}
         style={frozen ?? undefined}
         aria-label="Squash the bug"
         disabled={!active}
