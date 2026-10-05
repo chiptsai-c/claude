@@ -173,7 +173,26 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .bug { position: absolute; width: 9cqi; height: 9cqi; display: none; cursor: pointer; z-index: 5; border: 0; padding: 0; background: none; border-radius: 50%; animation: crawl 7s linear infinite; }
 .bug svg { width: 100%; height: 100%; display: block; }
 .phone.buggy .bug { display: block; }
-.bug.squashed { animation: none; transform: scale(1.4, .25); opacity: 0; transition: transform .25s, opacity .6s .3s; pointer-events: none; }
+.bug.squashed { animation: squish .75s cubic-bezier(.3,1.4,.5,1) forwards; pointer-events: none; }
+@keyframes squish {
+  0% { transform: none; filter: none; }
+  18% { transform: scale(.8, 1.25); }
+  42% { transform: scale(1.8, .22); filter: brightness(.7); }
+  75% { transform: scale(1.9, .18); opacity: 1; filter: brightness(.6); }
+  100% { transform: scale(2, .16); opacity: 0; filter: brightness(.5); }
+}
+.screen.shake { animation: shake .32s ease-in-out; }
+@keyframes shake { 20% { translate: -3px 2px; } 40% { translate: 3px -2px; } 60% { translate: -2px -1px; } 80% { translate: 2px 1px; } }
+.splat { position: absolute; width: 0; height: 0; z-index: 6; pointer-events: none; }
+.goo { position: absolute; width: 24cqi; height: 24cqi; left: -12cqi; top: -12cqi; overflow: visible; animation: goo 1.9s cubic-bezier(.2,1.5,.4,1) forwards; }
+.goo path { fill: #a8cf32; }
+.goo circle { fill: #7aa31a; }
+@keyframes goo { 0% { transform: scale(0) rotate(-20deg); opacity: 1; } 22% { transform: scale(1.08); } 32% { transform: scale(1); } 75% { opacity: .95; } 100% { transform: scale(1); opacity: 0; } }
+.drop { position: absolute; width: 2.2cqi; height: 2.2cqi; margin: -1.1cqi; border-radius: 50%; background: #a8cf32; transform: rotate(var(--a)); animation: drop .6s cubic-bezier(.15,.7,.3,1) forwards; }
+@keyframes drop { from { transform: rotate(var(--a)) translateX(0) scale(1.2); } 80% { opacity: 1; } to { transform: rotate(var(--a)) translateX(var(--dist)) scale(.4); opacity: 0; } }
+.pow { position: absolute; left: 0; top: -14cqi; translate: -50% 0; white-space: nowrap; font: 700 6.4cqi var(--display); color: var(--warn); -webkit-text-stroke: 1.4px #2b1a1a; paint-order: stroke fill; letter-spacing: .02em; animation: pow 1.4s cubic-bezier(.2,1.6,.4,1) forwards; }
+@keyframes pow { 0% { transform: scale(0) rotate(-14deg); opacity: 1; } 25% { transform: scale(1.15) rotate(-8deg); } 35% { transform: scale(1) rotate(-8deg); } 70% { transform: translateY(-2cqi) rotate(-8deg); opacity: 1; } 100% { transform: translateY(-7cqi) rotate(-8deg); opacity: 0; } }
+.hint.done { animation: none; background: var(--ok); }
 @keyframes crawl {
   0% { left: 70%; top: 50%; rotate: -90deg; }
   25% { left: 18%; top: 50%; rotate: -90deg; }
@@ -347,6 +366,8 @@ function setBuild(n) {
 function setBug(on) {
   phone.classList.toggle('buggy', on);
   bug.classList.remove('squashed');
+  bug.style.left = bug.style.top = bug.style.rotate = '';
+  phone.querySelectorAll('.splat').forEach(el => el.remove());
   badge.classList.remove('fixed');
   badge.className = on ? 'badge broken' : 'badge warn';
   badge.textContent = on ? 'status.pending_approval' : 'Pending approval';
@@ -358,7 +379,44 @@ function resetPhone(build, buggy) {
 }
 
 let bugResolve = () => {};
-bug.addEventListener('click', () => { bug.classList.add('squashed'); bugResolve(); });
+function squish(byUser) {
+  if (!phone.classList.contains('buggy') || bug.classList.contains('squashed')) return;
+  const screen = phone.querySelector('.screen');
+  const cs = getComputedStyle(bug);
+  // Freeze the bug where it was hit, or it jumps when the crawl animation stops.
+  bug.style.left = cs.left; bug.style.top = cs.top; bug.style.rotate = cs.rotate;
+  bug.classList.add('squashed');
+  const x = bug.offsetLeft + bug.offsetWidth / 2, y = bug.offsetTop + bug.offsetHeight / 2;
+  const pts = [];
+  for (let i = 0; i < 16; i++) {
+    const a = i / 16 * Math.PI * 2, r = (i % 2 ? 22 : 34) + Math.random() * 12;
+    pts.push([Math.cos(a) * r, Math.sin(a) * r].map(v => v.toFixed(1)));
+  }
+  const mid = (a, b) => ((+a[0] + +b[0]) / 2).toFixed(1) + ' ' + ((+a[1] + +b[1]) / 2).toFixed(1);
+  const path = 'M' + mid(pts[pts.length - 1], pts[0]) +
+    pts.map((p, i) => ' Q' + p.join(' ') + ' ' + mid(p, pts[(i + 1) % pts.length])).join('') + 'Z';
+  const blobs = [0, 1, 2].map(() => {
+    const a = Math.random() * Math.PI * 2, d = 40 + Math.random() * 10;
+    return '<circle cx="' + (Math.cos(a) * d).toFixed(1) + '" cy="' + (Math.sin(a) * d).toFixed(1) + '" r="' + (3 + Math.random() * 4).toFixed(1) + '"/>';
+  }).join('');
+  const drops = Array.from({ length: 9 }, (_, i) =>
+    '<i class="drop" style="--a:' + (i * 40 + Math.random() * 20) + 'deg;--dist:' + (10 + Math.random() * 9).toFixed(1) + 'cqi"></i>').join('');
+  const fx = document.createElement('div');
+  fx.className = 'splat';
+  fx.style.left = x + 'px'; fx.style.top = y + 'px';
+  fx.innerHTML = '<svg class="goo" viewBox="-50 -50 100 100" aria-hidden="true"><path d="' + path + '"/>' + blobs + '</svg>' + drops +
+    (byUser ? '<b class="pow" style="left:' + (Math.min(Math.max(x, screen.clientWidth * .3), screen.clientWidth * .7) - x).toFixed(0) + 'px">SQUASHED!</b>' : '');
+  screen.insertBefore(fx, bug);
+  setTimeout(() => fx.remove(), 2200);
+  if (byUser) {
+    screen.classList.remove('shake'); void screen.offsetWidth; screen.classList.add('shake');
+    try { navigator.vibrate && navigator.vibrate(35); } catch (e) {}
+    const h = $('#hint');
+    h.textContent = 'Squashed. Claude is fixing the cause.';
+    h.classList.add('done');
+  }
+}
+bug.addEventListener('click', () => { squish(true); bugResolve(); });
 
 const SCENES = [
   {
@@ -453,7 +511,7 @@ const SCENES = [
       line('Tests: <span class="bad">1 failed</span>, <span class="ok">11 passed</span>');
       await Promise.race([r.sleep(5500), squashed]);
       if (!r.alive()) throw new Cancel();
-      bug.classList.add('squashed');
+      squish(false);
       line('<span class="dim">● Reading src/status.ts…</span> pending_approval has no label', 'head');
       await r.sleep(700);
       line('<pre class="diff"><span class="c"> export const STATUS = {</span><span class="c">   in_progress: { label: "In progress", tone: "info" },</span><span class="p">+  pending_approval: { label: "Pending approval", tone: "warn" },</span><span class="c">   resolved: { label: "Resolved", tone: "ok" },</span><span class="c"> };</span></pre>');
@@ -533,6 +591,8 @@ function renderCopy(s) {
   $('#lede').textContent = s.lede;
   $('#note').innerHTML = '<span>In practice</span>' + s.note;
   $('#hint').hidden = !s.hint;
+  $('#hint').textContent = 'Tap the bug on the phone to squash it';
+  $('#hint').classList.remove('done');
   $('#payoff').hidden = true;
   copy.classList.remove('enter'); void copy.offsetWidth; copy.classList.add('enter');
 }
