@@ -20,7 +20,9 @@ An animated showcase of Claude Code building a mobile app (an IT service request
 
 ## Modes
 - **Explore:** Back/Next, the scene dots, arrow keys, or swipe.
-- **Director's Cut:** loops intro → 4 scenes → wrap-up without anyone touching it. Approvals happen on their own.
+- **Director's Cut:** loops intro → 4 scenes → wrap-up without anyone touching it.
+  - **Camera:** scrolls to whatever matters at each moment (the text, the phone, the console or the stats) and briefly highlights it. It only scrolls when that area isn't already fully on screen, so on a large display it rarely moves. If someone scrolls by hand, it leaves the page alone for 8 seconds.
+  - **Approvals:** the push is approved automatically and clearly labelled as simulated, with a note that in real use a person must approve.
 - **Kiosk:** open the app with `#kiosk` at the end of the URL. It auto-plays, and when someone stops to explore, it restarts the Director's Cut after 45 seconds with no interaction.
 - **Sound:** off by default; the button in the header turns it on. All sounds are generated in the browser.
 - **Reduced motion:** respects the device setting by skipping typing and jumping to end states.
@@ -30,7 +32,7 @@ All scene text and scripts live in **`app/src/content/showcase.json`**. Change w
 
 Text supports colour tags: `{ok:green}`, `{bad:red}`, `{warn:amber}`, `{acc:orange}`, `{dim:grey}`, `{pr:prompt}`, `{add:added file}`, `{tag:helper name}`.
 
-Each scene's `script` is a list of steps (`type`, `line`, `lines`, `wait`, `phone`, `ask`, `lanes`, `diff`, `awaitBug`, `squish`, `permission`, `checks`, `payoff`, `sound`). `npm test` checks the file and fails with a clear message if a step is mistyped.
+Each scene's `script` is a list of steps (`type`, `line`, `lines`, `wait`, `phone`, `ask`, `lanes`, `diff`, `awaitBug`, `squish`, `permission`, `checks`, `payoff`, `sound`, `focus`). `focus` is the Director's Cut camera: `{ "do": "focus", "target": "phone", "autoHoldMs": 1500 }` waits 1.5s, then brings the phone into view. It does nothing in manual mode. `npm test` checks the file and fails with a clear message if a step is mistyped.
 
 ## Develop
 ```bash

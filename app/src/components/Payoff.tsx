@@ -9,7 +9,7 @@ export function Payoff({ label, stats, reduced }: { label: string; stats: { valu
   }, [step]);
 
   return (
-    <div className="payoff">
+    <div className="payoff" data-focus-target="payoff">
       <div className="payoff-label">{label}</div>
       {stats.map(s => (
         <div className="stat" key={s.label}>

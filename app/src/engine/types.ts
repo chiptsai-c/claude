@@ -16,12 +16,15 @@ export type Step =
   | { do: 'diff'; lines: DiffLine[] }
   | { do: 'awaitBug'; timeoutMs: number }
   | { do: 'squish' }
-  | { do: 'permission'; command: string; deniedText: string }
+  | { do: 'permission'; command: string; deniedText: string; autoNote?: string }
+  /** Director's Cut only: optionally hold, then scroll the viewer to this area. */
+  | { do: 'focus'; target: FocusTarget; autoHoldMs?: number }
   | { do: 'checks'; items: string[]; gapMs: number }
   | { do: 'payoff' }
   | { do: 'sound'; name: SoundName };
 
 export type LineStyle = 'head' | 'plan';
+export type FocusTarget = 'copy' | 'phone' | 'console' | 'payoff';
 export type SoundName = 'tick' | 'chime' | 'splat' | 'whoosh' | 'pop';
 
 export type Line =
@@ -30,7 +33,7 @@ export type Line =
   | { id: number; kind: 'ask'; question: string; answer: string; pressed: boolean }
   | { id: number; kind: 'lane'; lane: Lane; pct: number }
   | { id: number; kind: 'diff'; lines: DiffLine[] }
-  | { id: number; kind: 'perm'; command: string; state: 'waiting' | 'pressed' | 'approved' }
+  | { id: number; kind: 'perm'; command: string; state: 'waiting' | 'pressed' | 'approved'; simulated?: boolean; autoNote?: string }
   | { id: number; kind: 'check'; text: string; done: boolean };
 
 export interface PhoneState {

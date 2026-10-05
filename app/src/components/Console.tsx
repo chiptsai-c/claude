@@ -12,7 +12,7 @@ export function Console({ lines, bus, idle }: { lines: Line[]; bus: Bus; idle?: 
   }, [lines]);
 
   return (
-    <section className="console" aria-label="Claude Code session">
+    <section className="console" aria-label="Claude Code session" data-focus-target="console">
       <div className="con-bar"><i /><i /><i /><span>~/it-help-app · claude</span></div>
       <div className="con-body" ref={body}>
         {lines.length === 0 && idle && (
@@ -72,13 +72,14 @@ function LineBody({ line, bus }: { line: Line; bus: Bus }) {
           <div className="perm-t">Claude wants to run</div>
           <code>{line.command}</code>
           {line.state === 'approved' ? (
-            <div className="perm-ok">✓ Approved by you</div>
+            <div className="perm-ok">{line.simulated ? '✓ Approved (simulated for the demo loop)' : '✓ Approved by you'}</div>
           ) : (
             <div className="perm-b">
               <button type="button" className={'btn-ok' + (line.state === 'pressed' ? ' pressed' : '')} onClick={() => bus.emit('approve')}>Approve</button>
               <button type="button" className="btn-no" onClick={() => bus.emit('deny')}>Deny</button>
             </div>
           )}
+          {line.simulated && line.autoNote && <div className="perm-note">{line.autoNote}</div>}
         </div>
       );
     case 'check':

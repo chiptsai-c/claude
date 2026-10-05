@@ -114,6 +114,33 @@ describe('runner', () => {
     expect(h.state.payoff).toBe(true);
   });
 
+  it("focus steps only move the camera in Director's Cut", async () => {
+    for (const auto of [false, true]) {
+      const h = harness({ auto });
+      const seen: string[] = [];
+      h.ctx.focus = t => { seen.push(t); };
+      const run = runScript(scene('ship'), h.ctx);
+      if (!auto) { await tick(); h.bus.emit('approve'); }
+      await run;
+      expect(seen).toEqual(auto ? ['console', 'phone', 'payoff'] : []);
+    }
+  });
+
+  it('a simulated approval is labelled as simulated', async () => {
+    const h = harness({ auto: true });
+    await runScript([{ do: 'permission', command: 'git push', deniedText: 'Denied.', autoNote: 'Simulated.' }], h.ctx);
+    expect(h.state.lines[0]).toMatchObject({ state: 'approved', simulated: true, autoNote: 'Simulated.' });
+  });
+
+  it('a real approval is not labelled as simulated', async () => {
+    const h = harness();
+    const run = runScript([{ do: 'permission', command: 'git push', deniedText: 'Denied.', autoNote: 'Simulated.' }], h.ctx);
+    await tick();
+    h.bus.emit('approve');
+    await run;
+    expect(h.state.lines[0]).not.toHaveProperty('simulated');
+  });
+
   it('aborting a scene rejects with Cancelled', async () => {
     const h = harness();
     const run = runScript([{ do: 'permission', command: 'x', deniedText: 'y' }], h.ctx);

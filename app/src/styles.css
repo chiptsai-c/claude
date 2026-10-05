@@ -222,3 +222,9 @@ nav { position: sticky; bottom: 0; padding-block: 12px calc(12px + env(safe-area
 .recap button::before { content: counter(step); position: absolute; left: 14px; top: 50%; translate: 0 -50%; width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: var(--panel); display: grid; place-items: center; font: 700 12px var(--mono); }
 .recap button span { display: block; font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .12em; color: var(--accent); }
 .cta { margin: 0; font-weight: 600; color: var(--fg); max-width: 54ch; }
+
+/* Director's Cut camera */
+[data-focus-target] { scroll-margin-top: 16px; scroll-margin-bottom: 140px; }
+.console.attn, .payoff.attn, .attn .phone { animation: attn 1.1s ease-out 2; }
+@keyframes attn { from { outline: 3px solid rgba(238,138,94,.85); outline-offset: 0; } to { outline: 3px solid rgba(238,138,94,0); outline-offset: 14px; } }
+.perm-note { font-size: 12px; color: var(--warn); border-top: 1px dashed var(--line); padding-top: 8px; }

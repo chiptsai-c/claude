@@ -1,6 +1,6 @@
 import type { Action } from './state';
 import type { Bus, BusEvent } from './bus';
-import type { Line, PhoneState, SoundName, Step } from './types';
+import type { FocusTarget, Line, PhoneState, SoundName, Step } from './types';
 
 export class Cancelled extends Error {
   constructor() { super('Scene cancelled'); }
@@ -16,6 +16,8 @@ export interface RunContext {
   /** Reduced motion: no typing or waiting, jump to end states. */
   reduced: boolean;
   sound: (name: SoundName) => void;
+  /** Director's Cut camera: bring an area of the page into view. */
+  focus?: (target: FocusTarget) => void;
   /** Milliseconds per typed character. */
   typeMs?: number;
 }
@@ -140,7 +142,10 @@ async function runStep(step: Step, ctx: RunContext): Promise<void> {
       try {
         const waits = [once(ctx, 'approve')];
         if (ctx.auto) {
-          waits.push(sleep(ctx, 2200).then(() => { patch(ctx, id, { state: 'pressed' }); return sleep(ctx, 350); }));
+          waits.push(sleep(ctx, 2200).then(() => {
+            patch(ctx, id, { state: 'pressed', simulated: true, autoNote: step.autoNote });
+            return sleep(ctx, 350);
+          }));
         }
         await Promise.race(waits);
       } finally {
@@ -167,6 +172,12 @@ async function runStep(step: Step, ctx: RunContext): Promise<void> {
 
     case 'sound':
       ctx.sound(step.name);
+      return;
+
+    case 'focus':
+      if (!ctx.auto) return;
+      if (step.autoHoldMs) await sleep(ctx, step.autoHoldMs);
+      ctx.focus?.(step.target);
       return;
   }
 }

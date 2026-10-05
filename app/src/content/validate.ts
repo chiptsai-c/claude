@@ -4,7 +4,7 @@ const STEP_KEYS: Record<Step['do'], string[]> = {
   wait: ['ms'], phone: [], type: ['text'], line: ['text'], lines: ['items', 'gapMs'],
   ask: ['question', 'answer'], lanes: ['lanes', 'ticks', 'tickMs', 'events'], diff: ['lines'],
   awaitBug: ['timeoutMs'], squish: [], permission: ['command', 'deniedText'],
-  checks: ['items', 'gapMs'], payoff: [], sound: ['name'],
+  checks: ['items', 'gapMs'], payoff: [], sound: ['name'], focus: ['target'],
 };
 
 /** Returns a list of problems in the content file; empty means valid. */

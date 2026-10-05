@@ -4,6 +4,7 @@ import { showcase } from './content';
 import { Bus } from './engine/bus';
 import { Cancelled, newLineId, runScript, sleep, type RunContext } from './engine/runner';
 import { initialStage, stageReducer } from './engine/state';
+import type { FocusTarget } from './engine/types';
 import { play, setSoundEnabled } from './lib/sound';
 import { load, save } from './lib/storage';
 import { Console } from './components/Console';
@@ -15,6 +16,8 @@ const INTRO = 0;
 const OUTRO = N + 1;
 const SLOTS = N + 2;
 const KIOSK_IDLE_MS = 45_000;
+/** After someone scrolls by hand, Director's Cut leaves the page position alone for this long. */
+const USER_SCROLL_GRACE_MS = 8_000;
 
 const copyMotion = {
   initial: { opacity: 0, y: 14 },
@@ -41,6 +44,36 @@ export function App() {
 
   const scene = slot >= 1 && slot <= N ? showcase.scenes[slot - 1] : null;
 
+  // Director's Cut camera: scroll to the area that matters right now and give it a brief highlight.
+  const userScrolledAt = useRef(0);
+  const focus = useCallback((target: FocusTarget) => {
+    if (Date.now() - userScrolledAt.current < USER_SCROLL_GRACE_MS) return;
+    // Wait a frame so anything the script just added (like the payoff) is on the page.
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      const el = document.querySelector<HTMLElement>(`[data-focus-target="${target}"]`);
+      if (!el) return;
+      if (target !== 'copy') {
+        el.classList.remove('attn');
+        void el.offsetWidth;
+        el.classList.add('attn');
+      }
+      const navH = document.querySelector('nav')?.getBoundingClientRect().height ?? 0;
+      const visibleH = innerHeight - navH;
+      const r = el.getBoundingClientRect();
+      const fullyVisible = r.top >= 0 && r.bottom <= visibleH;
+      const tallAndTopVisible = r.height > visibleH && Math.abs(r.top) < 40;
+      if (fullyVisible || tallAndTopVisible) return;
+      el.scrollIntoView?.({ behavior: reduced ? 'auto' : 'smooth', block: r.height > visibleH * 0.85 ? 'start' : 'center' });
+    }));
+  }, [reduced]);
+
+  useEffect(() => {
+    const mark = () => { userScrolledAt.current = Date.now(); };
+    addEventListener('wheel', mark, { passive: true });
+    addEventListener('touchmove', mark, { passive: true });
+    return () => { removeEventListener('wheel', mark); removeEventListener('touchmove', mark); };
+  }, []);
+
   // Run the current slot's script. A new slot or a replay aborts the previous run.
   useEffect(() => {
     const ctrl = new AbortController();
@@ -48,7 +81,9 @@ export function App() {
       dispatch, bus, reduced, sound: play, signal: ctrl.signal,
       getPhone: () => stageRef.current.phone,
       auto: autoRef.current,
+      focus,
     };
+    if (autoRef.current) focus('copy');
     const run = async () => {
       let hold: number;
       if (slot === INTRO) {
@@ -66,6 +101,10 @@ export function App() {
           await sleep(ctx, 250);
         }
         dispatch({ type: 'payoff' });
+        if (autoRef.current) {
+          await sleep(ctx, 3500);
+          focus('payoff');
+        }
         hold = 9000;
       } else {
         dispatch({ type: 'reset' });
@@ -78,7 +117,7 @@ export function App() {
     };
     run().catch(e => { if (!(e instanceof Cancelled)) console.error(e); });
     return () => ctrl.abort();
-  }, [slot, runKey, bus, reduced]);
+  }, [slot, runKey, bus, reduced, focus]);
 
   const go = useCallback((target: number, keepAuto = false) => {
     if (!keepAuto) setAuto(false);
@@ -87,6 +126,7 @@ export function App() {
   }, []);
 
   const startDirectorsCut = useCallback(() => {
+    userScrolledAt.current = 0;
     setAuto(true);
     autoRef.current = true;
     go(INTRO, true);
@@ -164,7 +204,7 @@ export function App() {
           if (Math.abs(dx) > 60) go(slot + (dx < 0 ? 1 : -1));
         }}
       >
-        <section className="copy" aria-live="polite">
+        <section className="copy" aria-live="polite" data-focus-target="copy">
           <AnimatePresence mode="wait">
             <motion.div key={slot + ':' + runKey} className="copy-in" {...copyMotion}>
               {slot === INTRO && (
@@ -215,7 +255,7 @@ export function App() {
           {stage.payoff && <Payoff label={showcase.payoff.label} stats={showcase.payoff.stats} reduced={reduced} />}
         </section>
 
-        <div className="phone-col">
+        <div className="phone-col" data-focus-target="phone">
           <Phone phone={stage.phone} onSquash={onSquash} />
         </div>
 
