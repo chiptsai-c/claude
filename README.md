@@ -6,7 +6,7 @@ An animated showcase of Claude Code building a mobile app (an IT service request
 |---|---|---|
 | `app/` | The Phase 1 app: React + Framer Motion, installable on phones, works offline | **Current** |
 | `prototype/` | Phase 0 single-file prototype, kept for reference | Superseded |
-| `wan-video-bot/` | Separate side project: Telegram agent (runs on an Android phone) that turns photos into Wan 2.2 videos via ComfyUI | Personal testing |
+| `wan-video-bot/` | Separate side project: Telegram agent (runs on an Android phone) that turns photos into Wan 2.2 videos via fal.ai or your own ComfyUI | Personal testing |
 
 ## The story
 

@@ -37,7 +37,7 @@ class BotFlowTest(unittest.TestCase):
 
     def test_photo_then_prompt_renders(self):
         ctx = SimpleNamespace(user_data={})
-        with patch.object(bot.comfy, "generate_video", side_effect=fake_render) as gen:
+        with patch.object(bot.backend, "generate_video", side_effect=fake_render) as gen:
             self.run_(bot.photo(make_update(with_photo=True), ctx))
             self.assertIn("photo", ctx.user_data)
             self.run_(bot.text(u := make_update(text="slow zoom in", msg_id=2), ctx))
@@ -49,7 +49,7 @@ class BotFlowTest(unittest.TestCase):
 
     def test_caption_renders_immediately(self):
         ctx = SimpleNamespace(user_data={})
-        with patch.object(bot.comfy, "generate_video", side_effect=fake_render) as gen:
+        with patch.object(bot.backend, "generate_video", side_effect=fake_render) as gen:
             self.run_(bot.photo(u := make_update(with_photo=True, caption="waves"), ctx))
         self.assertEqual(gen.call_args.args[1], "waves")
         u.message.reply_video.assert_awaited_once()
@@ -61,14 +61,23 @@ class BotFlowTest(unittest.TestCase):
 
     def test_stranger_blocked(self):
         ctx = SimpleNamespace(user_data={})
-        with patch.object(bot.comfy, "generate_video") as gen:
+        with patch.object(bot.backend, "generate_video") as gen:
             self.run_(bot.photo(u := make_update(user_id=999, with_photo=True, caption="x"), ctx))
         gen.assert_not_called()
         self.assertIn("999", u.message.reply_text.call_args.args[0])
 
+    def test_daily_limit(self):
+        ctx = SimpleNamespace(user_data={})
+        with patch.object(bot, "MAX_PER_DAY", 1), patch.dict(bot.usage, {"day": None, "count": 0}), \
+                patch.object(bot.backend, "generate_video", side_effect=fake_render) as gen:
+            self.run_(bot.photo(make_update(with_photo=True, caption="a"), ctx))
+            self.run_(bot.photo(u := make_update(with_photo=True, caption="b", msg_id=2), ctx))
+        self.assertEqual(gen.call_count, 1)
+        self.assertIn("Daily limit", u.message.reply_text.call_args.args[0])
+
     def test_render_error_reported(self):
         ctx = SimpleNamespace(user_data={})
-        with patch.object(bot.comfy, "generate_video", side_effect=bot.ComfyError("GPU out of memory")):
+        with patch.object(bot.backend, "generate_video", side_effect=bot.ComfyError("GPU out of memory")):
             self.run_(bot.photo(u := make_update(with_photo=True, caption="x"), ctx))
         self.assertIn("GPU out of memory", u.message.reply_text.call_args.args[0])
 

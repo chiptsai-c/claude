@@ -26,6 +26,6 @@ chmod +x ~/.termux/boot/wan-video-bot.sh termux/*.sh
 
 echo
 echo "Done. Next:"
-echo "  1. nano .env        (BOT_TOKEN, COMFY_URL)"
-echo "  2. python comfy.py --check   (tests the GPU connection)"
-echo "  3. bash termux/run.sh"
+echo "  1. nano .env        (BOT_TOKEN and FAL_KEY; or BACKEND=comfyui + COMFY_URL)"
+echo "  2. bash termux/run.sh"
+echo "  3. Send /whoami to your bot, put the number in ALLOWED_USER_IDS, restart"

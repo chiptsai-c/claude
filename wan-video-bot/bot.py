@@ -1,4 +1,8 @@
-"""Telegram agent that turns a photo into a Wan 2.2 video via ComfyUI.
+"""Telegram agent that turns a photo into a Wan 2.2 video.
+
+Backends (BACKEND in .env):
+  fal      phone only: rendering runs on fal.ai's hosted GPUs (default)
+  comfyui  your own GPU machine running ComfyUI, reached over Tailscale
 
 Conversation:
   you:  /video (or just send a photo)
@@ -6,10 +10,11 @@ Conversation:
   you:  photo (caption optional)
   bot:  asks what should happen, if there was no caption
   you:  "slow zoom in, hair blowing in the wind"
-  bot:  renders on the GPU and sends the video back
+  bot:  renders the video and sends it back
 """
 
 import asyncio
+import datetime
 import logging
 import os
 import tempfile
@@ -23,7 +28,9 @@ from telegram.ext import (
     filters,
 )
 
-from comfy import ComfyError, client_from_env, load_env
+import comfy as comfy_backend
+import fal_backend
+from comfy import ComfyError, load_env
 
 load_env()
 logging.basicConfig(format="%(asctime)s %(levelname)s %(message)s", level=logging.INFO)
@@ -31,9 +38,14 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 log = logging.getLogger("wan-bot")
 
 ALLOWED = {int(x) for x in os.environ.get("ALLOWED_USER_IDS", "").replace(" ", "").split(",") if x}
-comfy = client_from_env()
-render_lock = asyncio.Lock()  # one GPU renders one video at a time
+BACKEND = os.environ.get("BACKEND", "fal").lower()
+if BACKEND not in ("fal", "comfyui"):
+    raise SystemExit(f"BACKEND must be 'fal' or 'comfyui', not {BACKEND!r}")
+backend = (fal_backend if BACKEND == "fal" else comfy_backend).client_from_env()
+MAX_PER_DAY = int(os.environ.get("MAX_VIDEOS_PER_DAY", "10"))  # spend guard; 0 = unlimited
+render_lock = asyncio.Lock()  # one video at a time
 waiting = 0
+usage = {"day": None, "count": 0}
 
 HELP = (
     "🎬 I turn a photo into a short AI video.\n\n"
@@ -42,7 +54,7 @@ HELP = (
     "3. Wait a few minutes for the video.\n\n"
     "Prompt tips: describe the movement and the camera, e.g. "
     "\"waves rolling in, palm trees swaying, slow push-in, golden hour\".\n\n"
-    "Commands: /video start, /status GPU check, /cancel forget current photo, /whoami your user ID."
+    "Commands: /video start, /status backend check, /cancel forget current photo, /whoami your user ID."
 )
 
 
@@ -85,8 +97,10 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await guard(update):
         return
-    ok, text = await asyncio.to_thread(comfy.status)
+    ok, text = await asyncio.to_thread(backend.status)
     busy = f"\nThis bot: {'rendering' if render_lock.locked() else 'idle'}, {waiting} waiting."
+    if MAX_PER_DAY:
+        busy += f"\nVideos today: {_used_today()}/{MAX_PER_DAY}."
     await update.message.reply_text(("✅ " if ok else "❌ ") + text + busy)
 
 
@@ -123,6 +137,11 @@ async def render(update: Update, context: ContextTypes.DEFAULT_TYPE, prompt: str
     global waiting
     msg = update.message
     path = context.user_data.pop("photo")
+    if MAX_PER_DAY and _used_today() >= MAX_PER_DAY:
+        os.remove(path)
+        await msg.reply_text(f"🛑 Daily limit of {MAX_PER_DAY} videos reached (MAX_VIDEOS_PER_DAY in .env). "
+                             "Try again tomorrow.")
+        return
     out = os.path.splitext(path)[0] + ".mp4"
 
     waiting += 1
@@ -143,7 +162,8 @@ async def render(update: Update, context: ContextTypes.DEFAULT_TYPE, prompt: str
 
         try:
             log.info("Render start user=%s prompt=%r", update.effective_user.id, prompt)
-            out = await asyncio.to_thread(comfy.generate_video, path, prompt, out, progress)
+            out = await asyncio.to_thread(backend.generate_video, path, prompt, out, progress)
+            _used_today(add=1)
             size_mb = os.path.getsize(out) / 2**20
             if size_mb > 49:
                 await msg.reply_text(f"⚠️ Video is {size_mb:.0f} MB, over Telegram's 50 MB bot limit. "
@@ -164,6 +184,14 @@ async def render(update: Update, context: ContextTypes.DEFAULT_TYPE, prompt: str
                     os.remove(p)
 
 
+def _used_today(add=0):
+    today = datetime.date.today()
+    if usage["day"] != today:
+        usage.update(day=today, count=0)
+    usage["count"] += add
+    return usage["count"]
+
+
 def _forget_photo(context):
     path = context.user_data.pop("photo", None)
     if path and os.path.exists(path):
@@ -176,7 +204,7 @@ def main():
         raise SystemExit("BOT_TOKEN is missing. Copy .env.example to .env and fill it in.")
     if not ALLOWED:
         log.warning("ALLOWED_USER_IDS is empty: everyone is blocked. Message the bot to get your ID.")
-    log.info("ComfyUI: %s", comfy.status()[1])
+    log.info("Backend %s: %s", BACKEND, backend.status()[1])
 
     app = ApplicationBuilder().token(token).concurrent_updates(True).build()
     app.add_handler(CommandHandler(["start", "help"], start))
