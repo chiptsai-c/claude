@@ -3,9 +3,10 @@ import { DAY_MS, selectNext, type Pick } from '../../src/adaptive/index.ts';
 import type { Response } from '../../src/content/pack.ts';
 import { scoreAnswer } from '../../src/game/score.ts';
 import { Challenge } from './Challenge.tsx';
-import { deriveProfile, emptySave, itemById, load, pack, QUEST_LENGTH, save, xpFor, type PlayEvent, type Saved } from './game.ts';
+import { buzz, confetti, isSoundOn, play, setSoundOn } from './fx.ts';
+import { deriveProfile, emptySave, itemById, levelFor, load, pack, QUEST_LENGTH, save, xpFor, type PlayEvent, type Saved } from './game.ts';
 import { Home } from './Home.tsx';
-import { Flame, Star } from './icons.tsx';
+import { Flame, Speaker, Star } from './icons.tsx';
 import { Results, type QuestSummary } from './Results.tsx';
 
 export type Answered = { response: Response; outcome: number; xp: number };
@@ -30,6 +31,8 @@ export function App() {
   const profile = useMemo(() => deriveProfile(saved.events, now), [saved.events, now]);
   const [quest, setQuest] = useState<Quest | null>(null);
   const [summary, setSummary] = useState<QuestSummary | null>(null);
+  const [sound, setSound] = useState(isSoundOn);
+  const [levelUp, setLevelUp] = useState<ReturnType<typeof levelFor> | null>(null);
   const mainRef = useRef<HTMLElement>(null);
 
   const update = (next: Saved) => { setSaved(next); save(next); };
@@ -59,6 +62,17 @@ export function App() {
     };
     update({ ...saved, events: [...saved.events, event] });
     setQuest({ ...quest, outcomes: [...quest.outcomes, outcome], answered: { response, outcome, xp }, xp: quest.xp + xp });
+
+    // Feedback you can hear and feel. Combos and level-ups get a celebration.
+    const comboHit = outcome === 1 && combo > 0 && combo % 3 === 0;
+    play(outcome === 1 ? (comboHit ? 'combo' : 'correct') : outcome > 0 ? 'partial' : 'wrong');
+    buzz(outcome === 1 ? 30 : outcome > 0 ? [20, 40, 20] : [60, 50, 60]);
+    if (comboHit) confetti(60);
+    const after = levelFor(profile.xp + xp);
+    if (after.level > profile.level.level) {
+      setLevelUp(after);
+      setTimeout(() => { play('levelup'); confetti(); }, 350);
+    }
   }
 
   function next() {
@@ -89,6 +103,7 @@ export function App() {
           <span><b>Skill Quest</b><small>{pack.title}</small></span>
         </button>
         <div className="chips" aria-label="Your progress">
+          <button className="chip sound" aria-pressed={sound} aria-label={sound ? 'Sound on' : 'Sound off'} title={sound ? 'Sound on' : 'Sound off'} onClick={() => { setSoundOn(!sound); setSound(!sound); }}><Speaker on={sound} /></button>
           <span className="chip" title="Day streak"><Flame /> {profile.streak}</span>
           <span className="chip" title="Total XP"><Star /> {profile.xp}</span>
         </div>
@@ -132,6 +147,18 @@ export function App() {
           />
         )}
       </main>
+
+      {levelUp && (
+        <div className="levelup" role="dialog" aria-modal="true" aria-labelledby="lu-title">
+          <div className="levelup-card">
+            <div className="level-badge huge" aria-hidden="true">{levelUp.level}</div>
+            <p className="eyebrow">Level up!</p>
+            <h2 id="lu-title">You've reached {levelUp.name}</h2>
+            <p>{levelUp.span} XP to the next level. Keep the streak going.</p>
+            <button className="primary big" autoFocus onClick={() => setLevelUp(null)}>Keep going</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

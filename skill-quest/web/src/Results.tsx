@@ -1,3 +1,5 @@
+import { useEffect } from 'react';
+import { confetti, play } from './fx.ts';
 import { BADGES, itemById, pack, type Profile } from './game.ts';
 
 export type QuestSummary = {
@@ -11,6 +13,8 @@ export type QuestSummary = {
 export function Results({ summary, profile, onHome }: { summary: QuestSummary; profile: Profile; onHome: () => void }) {
   const correct = summary.outcomes.filter(o => o === 1).length;
   const practised = [...new Set(summary.items.map(id => itemById.get(id)!.skillId))];
+  const celebrate = correct === summary.outcomes.length || summary.newBadges.length > 0;
+  useEffect(() => { if (celebrate) { confetti(); play('combo'); } }, [celebrate]);
   const headline = correct === summary.outcomes.length ? 'Perfect run!' : correct >= summary.outcomes.length - 2 ? 'Strong quest' : 'Quest complete';
 
   return (

@@ -8,6 +8,7 @@ import { scoreAnswer } from '../src/game/score.ts';
 const load = (name: string): ContentPack =>
   JSON.parse(readFileSync(new URL(`../src/content/packs/${name}`, import.meta.url), 'utf8')) as ContentPack;
 const pack = load('responsible-ai.en.json');
+const byId = (id: string) => pack.items.find(i => i.id === id)!;
 
 describe('content packs', () => {
   it('ships a valid Responsible AI pack', () => {
@@ -28,6 +29,11 @@ describe('content packs', () => {
     expect(problems).toMatch(/difficulty must be a number from -3 to 3/);
     expect(problems).toMatch(/Item "bad" answer must be an option index/);
     expect(problems).toMatch(/Skill "loop" has 0 items/);
+
+    const badSpot = { ...pack, items: [...pack.items, { ...byId('spot-prompt'), id: 'all-risky', risky: [0, 1, 2, 3, 4, 5, 6] } as PackItem] };
+    expect(validatePack(badSpot).join()).toMatch(/at least one safe segment/);
+    const badScene = { ...pack, items: [...pack.items, { ...byId('prompt-1'), id: 'bad-scene', scene: { title: 'x', lines: [{ who: '', text: 'hi', side: 'left' }] } } as PackItem] };
+    expect(validatePack(badScene).join()).toMatch(/scene needs a title and lines/);
   });
 
   it('plays with the adaptive engine: starts on unlocked skills and explains the pick', () => {
@@ -60,6 +66,20 @@ describe('scoring (the engine decides)', () => {
     const wrong = multi.options.findIndex((_, i) => !multi.answer.includes(i));
     expect(scoreAnswer(multi, [...multi.answer, wrong])).toBeCloseTo(2 / 3);
     expect(scoreAnswer(multi, [wrong])).toBe(0);
+  });
+
+  it('scores spot-the-risk like select-all, and sorting by cards placed correctly', () => {
+    const spot = byType('spot');
+    if (spot.type !== 'spot') throw new Error();
+    expect(scoreAnswer(spot, spot.risky)).toBe(1);
+    const safe = spot.segments.findIndex((_, i) => !spot.risky.includes(i));
+    expect(scoreAnswer(spot, [...spot.risky, safe])).toBeCloseTo(1 - 1 / spot.risky.length);
+    const sort = byType('classify');
+    if (sort.type !== 'classify') throw new Error();
+    const perfect = sort.cards.map(c => c.bucket);
+    expect(scoreAnswer(sort, perfect)).toBe(1);
+    expect(scoreAnswer(sort, perfect.map((b, i) => (i === 0 ? (b + 1) % sort.buckets.length : b)))).toBeCloseTo(1 - 1 / sort.cards.length);
+    expect(scoreAnswer(sort, perfect.slice(1))).toBe(0);
   });
 
   it('scores ordering by adjacent pairs in the right order, and malformed input as 0', () => {

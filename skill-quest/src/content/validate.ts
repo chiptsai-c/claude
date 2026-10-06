@@ -45,6 +45,9 @@ export function validatePack(pack: ContentPack): string[] {
     if (!it.prompt?.trim()) errors.push(`${at} needs a prompt`);
     if (!it.explanation?.trim()) errors.push(`${at} needs an explanation`);
 
+    if (it.scene && (!it.scene.title || !it.scene.lines?.length || it.scene.lines.some(l => !l.who || !l.text || !['left', 'right', 'system'].includes(l.side))))
+      errors.push(`${at} scene needs a title and lines with who, text and side (left, right or system)`);
+
     switch (it.type) {
       case 'choice':
         if (it.options.length < 2) errors.push(`${at} needs at least 2 options`);
@@ -60,6 +63,19 @@ export function validatePack(pack: ContentPack): string[] {
         break;
       case 'order':
         if (it.options.length < 3) errors.push(`${at} needs at least 3 steps to order`);
+        break;
+      case 'spot':
+        if (!it.heading || it.segments.length < 3) errors.push(`${at} needs a heading and at least 3 segments`);
+        if (!it.risky.length || new Set(it.risky).size !== it.risky.length || it.risky.some(r => !Number.isInteger(r) || r < 0 || r >= it.segments.length))
+          errors.push(`${at} risky must be a list of distinct segment indices`);
+        else if (it.risky.length === it.segments.length) errors.push(`${at} must have at least one safe segment`);
+        break;
+      case 'classify':
+        if (it.buckets.length < 2) errors.push(`${at} needs at least 2 buckets`);
+        if (it.cards.length < 3) errors.push(`${at} needs at least 3 cards`);
+        it.cards.forEach((c, i) => {
+          if (!c.text || !Number.isInteger(c.bucket) || c.bucket < 0 || c.bucket >= it.buckets.length) errors.push(`${at} card ${i + 1} needs text and a valid bucket`);
+        });
         break;
       default:
         errors.push(`${at} has unknown type "${(it as { type: string }).type}"`);

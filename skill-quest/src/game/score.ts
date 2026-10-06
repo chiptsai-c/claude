@@ -10,12 +10,13 @@ export function scoreAnswer(item: PackItem, response: Response): number {
       return response === item.answer ? 1 : 0;
     case 'truefalse':
       return response === item.answer ? 1 : 0;
-    case 'multi': {
-      if (!Array.isArray(response)) return 0;
-      const picked = new Set(response);
-      const right = item.answer.filter(a => picked.has(a)).length;
-      const wrong = picked.size - right;
-      return Math.max(0, (right - wrong) / item.answer.length);
+    case 'multi':
+      return pickScore(item.answer, response);
+    case 'spot':
+      return pickScore(item.risky, response);
+    case 'classify': {
+      if (!Array.isArray(response) || response.length !== item.cards.length) return 0;
+      return item.cards.filter((c, i) => response[i] === c.bucket).length / item.cards.length;
     }
     case 'order': {
       // response lists option indices in the player's order; the correct order is 0, 1, 2, …
@@ -26,4 +27,13 @@ export function scoreAnswer(item: PackItem, response: Response): number {
       return inOrder / (n - 1);
     }
   }
+}
+
+/** Select-all scoring: each correct pick earns credit, each wrong pick cancels one. */
+function pickScore(answer: number[], response: Response): number {
+  if (!Array.isArray(response)) return 0;
+  const picked = new Set(response);
+  const right = answer.filter(a => picked.has(a)).length;
+  const wrong = picked.size - right;
+  return Math.max(0, (right - wrong) / answer.length);
 }

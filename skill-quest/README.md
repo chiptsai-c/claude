@@ -13,7 +13,10 @@ The offline learning engine behind Skill Quest (design: [`docs/skill-quest-desig
 | Content | `src/content/` | Pack types, author-friendly validator, sample pack *Responsible AI & Copilot Essentials* |
 
 ## Play it (web prototype)
-`web/` is a clickable Daily Quest built on the engine: 6 questions picked for you, "Why this question?", hints, XP, combos, levels, streaks, 7 badges, a mastery map with locked skills, and a results screen. Everything (XP, streak, badges) is derived from the answer log saved on the device. **Demo controls** at the bottom of the home screen jump the clock forward a day so refreshers come due.
+`web/` is a clickable Daily Quest built on the engine: 6 questions picked for you, "Why this question?", hints, XP, combos, levels, streaks, 7 badges, a mastery map with locked skills, and a results screen.
+
+**Interactive formats:** animated **scenes** (a captioned chat clip plays before scenario questions, with Skip and Replay), **Spot the risk** (tap the risky parts of a mock email or chat), **Sort it** (cards dealt one at a time into buckets), plus pick-one, select-all, true/false and ordering.
+**Game feel:** generated sound effects (off until the player turns them on), phone haptics, confetti on combos and perfect runs, and a level-up celebration. All of it respects the device's reduced-motion setting and uses no media files. Everything (XP, streak, badges) is derived from the answer log saved on the device. **Demo controls** at the bottom of the home screen jump the clock forward a day so refreshers come due.
 
 ```bash
 npm run dev               # open the local URL on your laptop or phone (same Wi-Fi)
@@ -26,7 +29,7 @@ Needs Node 22.18 or later (runs TypeScript directly).
 ```bash
 cd skill-quest
 npm install
-npm test                                  # 37 engine, content, game-rule, simulation and UI tests
+npm test                                  # 39 engine, content, game-rule, simulation and UI tests
 npm run simulate -- --learners 10000      # policy comparison + quality gates (~30 s)
 npm run demo                              # three Daily Quests on the sample pack, in the terminal
 ```
@@ -63,7 +66,7 @@ npm run demo                              # three Daily Quests on the sample pac
 - Ability estimate correlation of 0.80 or more; calibration error of 10% or less
 
 ## Authoring content
-Packs are JSON (`src/content/packs/*.json`) and are checked by `npm test`. Question types: `choice`, `multi`, `truefalse`, `order` (list the steps in the correct order; the app shuffles them). Difficulty runs from −3 (very easy) to +3 (very hard).
+Packs are JSON (`src/content/packs/*.json`) and are checked by `npm test`. Question types: `choice`, `multi`, `truefalse`, `order` (list the steps in the correct order; the app shuffles them), `spot` (a message split into `segments`, with the `risky` ones listed) and `classify` (`buckets` and `cards`). Any question can carry a `scene`: a title and lines of `{ who, text, side }`, where side is `left`, `right` or `system` (an AI message, shown with an AI tag). Difficulty runs from −3 (very easy) to +3 (very hard).
 
 **Aim for 10–15 questions per skill**, spread across difficulties. The validator's minimum is 3, but with only 4 per skill (as in the sample pack) the engine runs out of well-matched questions and has to serve warm-ups or stretch questions, as `npm run demo` shows.
 

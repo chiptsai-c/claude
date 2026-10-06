@@ -6,7 +6,17 @@ export type Challenge =
   | { type: 'multi'; options: string[]; answer: number[] }
   | { type: 'truefalse'; answer: boolean }
   /** Options are listed in the correct order; the app shuffles them before showing. */
-  | { type: 'order'; options: string[] };
+  | { type: 'order'; options: string[] }
+  /** A mock message split into segments; the player taps every risky one. */
+  | { type: 'spot'; frame: 'chat' | 'email'; heading: string; segments: string[]; risky: number[] }
+  /** Cards dealt one at a time into buckets (e.g. Public / Internal / Confidential). */
+  | { type: 'classify'; buckets: string[]; cards: { text: string; bucket: number }[] };
+
+/** A short animated scene played before the question, like a captioned video clip but tiny and offline. */
+export type Scene = {
+  title: string;
+  lines: { who: string; text: string; side: 'left' | 'right' | 'system' }[];
+};
 
 export type PackItem = Challenge & {
   id: string;
@@ -16,6 +26,7 @@ export type PackItem = Challenge & {
   prompt: string;
   explanation: string;
   hint?: string;
+  scene?: Scene;
 };
 
 export type PackSkill = SkillDef & { description: string };
@@ -29,5 +40,8 @@ export type ContentPack = {
   items: PackItem[];
 };
 
-/** What the player submitted: an option index, several indices, true/false, or option indices in their chosen order. */
+/**
+ * What the player submitted: an option index; several indices (multi, spot); true/false;
+ * option indices in their chosen order (order); or the bucket picked for each card (classify).
+ */
 export type Response = number | number[] | boolean;
