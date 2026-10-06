@@ -1,0 +1,46 @@
+# News sources for the AI Daily Brief (open-model edition).
+# Upload this file to your state dataset repo to change sources without redeploying.
+#
+# google_news: each query becomes a Google News RSS search for the last 24 hours.
+#   edition: COUNTRY:language (default SG:en). Local-language editions pick up
+#   stories that never reach English media; Qwen translates them in the summary.
+#   country: tags the story for the SEA section (SG, MY, TH, ID, VN, PH).
+# feeds: direct RSS feeds. These give full article text, so summaries are richer.
+#   A feed that fails is listed in the email's coverage notes, not fatal.
+
+google_news:
+  # Microsoft ecosystem
+  - {query: '"Microsoft 365 Copilot" OR "Copilot Studio"', group: microsoft}
+  - {query: '"Power Platform" OR "Power Automate" AI', group: microsoft}
+  - {query: 'Microsoft Copilot licensing OR pricing', group: microsoft}
+  - {query: '"Agent 365" OR "Azure AI Foundry"', group: microsoft}
+  # Enterprise platforms
+  - {query: 'ServiceNow AI agents OR "Now Assist" OR "AI Control Tower"', group: platforms}
+  - {query: 'UiPath OR "agentic automation" OR RPA', group: platforms}
+  # Frontier labs and models
+  - {query: 'Anthropic OR OpenAI OR "Google DeepMind" model release', group: models}
+  - {query: 'Qwen OR DeepSeek OR "open-weight model"', group: models}
+  # Governance, regulation, security
+  - {query: '"AI Act" OR "AI regulation" OR "AI governance"', group: governance}
+  - {query: '"prompt injection" OR "AI agent" security breach', group: security}
+  # SEA markets, English editions
+  - {query: 'artificial intelligence Singapore IMDA OR enterprise', edition: 'SG:en', country: SG, group: sea}
+  - {query: 'artificial intelligence Malaysia', edition: 'MY:en', country: MY, group: sea}
+  - {query: 'artificial intelligence Thailand', edition: 'TH:en', country: TH, group: sea}
+  - {query: 'artificial intelligence Indonesia', edition: 'ID:en', country: ID, group: sea}
+  - {query: 'artificial intelligence Vietnam', edition: 'VN:en', country: VN, group: sea}
+  - {query: 'artificial intelligence Philippines', edition: 'PH:en', country: PH, group: sea}
+  - {query: 'ASEAN AI OR "data centre" Southeast Asia AI', group: sea}
+  # SEA markets, local-language editions
+  - {query: 'ปัญญาประดิษฐ์', edition: 'TH:th', country: TH, group: sea}
+  - {query: 'kecerdasan buatan', edition: 'ID:id', country: ID, group: sea}
+  - {query: 'trí tuệ nhân tạo', edition: 'VN:vi', country: VN, group: sea}
+
+feeds:
+  - {name: Microsoft 365 blog, url: 'https://www.microsoft.com/en-us/microsoft-365/blog/feed/', group: microsoft}
+  - {name: Power Platform blog, url: 'https://www.microsoft.com/en-us/power-platform/blog/feed/', group: microsoft}
+  - {name: OpenAI news, url: 'https://openai.com/news/rss.xml', group: models}
+  - {name: Google AI blog, url: 'https://blog.google/technology/ai/rss/', group: models}
+  - {name: Hugging Face blog, url: 'https://huggingface.co/blog/feed.xml', group: models}
+  - {name: e27, url: 'https://e27.co/feed/', group: sea}
+  - {name: KrASIA, url: 'https://kr-asia.com/feed', group: sea}

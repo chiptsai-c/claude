@@ -6,6 +6,7 @@ An animated showcase of Claude Code building a mobile app (an IT service request
 |---|---|---|
 | `app/` | The Phase 1 app: React + Framer Motion, installable on phones, works offline | **Current** |
 | `prototype/` | Phase 0 single-file prototype, kept for reference | Superseded |
+| `ai-daily-brief/` | Daily AI news briefing written by Qwen 3.5 on Hugging Face Jobs (separate from the app) | New |
 
 ## The story
 
