@@ -1,0 +1,76 @@
+name: Talent Scout
+
+on:
+  schedule:
+    - cron: '52 0 * * 1-5'   # 08:52 SGT/MYT, Monday to Friday (GitHub cron is UTC)
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Build the email but do not send it (uploaded as a run artifact)'
+        type: boolean
+        default: false
+  push:
+    paths: ['talent-scout/**', '.github/workflows/talent-scout.yml']
+  pull_request:
+    paths: ['talent-scout/**', '.github/workflows/talent-scout.yml']
+
+concurrency:
+  group: talent-scout
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: talent-scout
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: talent-scout/requirements.txt
+      - run: pip install -r requirements.txt pytest
+      - run: python -m pytest -q
+
+  scout:
+    needs: test
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # to save the list of candidates already sent
+    defaults:
+      run:
+        working-directory: talent-scout
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: talent-scout/requirements.txt
+      - run: pip install -r requirements.txt
+      - name: Find, rank and email candidates
+        run: python -m scout ${{ inputs.dry_run && '--dry-run' || '' }}
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+      - name: Upload dry-run email
+        if: inputs.dry_run
+        uses: actions/upload-artifact@v4
+        with:
+          name: talent-scout-digest
+          path: talent-scout/output/
+      - name: Save candidates already sent
+        if: ${{ !inputs.dry_run }}
+        run: |
+          git config user.name "talent-scout[bot]"
+          git config user.email "talent-scout@users.noreply.github.com"
+          git add state/seen.json
+          git diff --cached --quiet || (git commit -m "Talent Scout: record candidates sent $(date -u +%F)" && git push)

@@ -1,0 +1,62 @@
+# Talent Scout configuration. Edit this file to change the role, rubric or sources;
+# no code changes needed.
+
+[role]
+title = "AI Associate"
+team = "SEA IT - AI & Automation"
+locations = ["Singapore", "Malaysia", "Thailand", "Vietnam", "Indonesia", "Philippines"]
+summary = """
+Early-career (0-4 years) AI practitioner who builds and supports AI and automation
+solutions: Microsoft Copilot and Copilot Studio agents, Power Platform (Power Automate,
+Power Apps), RPA, prompt engineering, and LLM integrations with ServiceNow and SharePoint.
+Works with business users to turn manual processes into automated ones and follows
+responsible-AI and governance practices.
+"""
+
+# Weights must add up to 100. Each criterion is scored 0-5 by the agent, then weighted.
+[[rubric]]
+name = "Microsoft AI stack"
+weight = 25
+description = "Hands-on with Copilot, Copilot Studio, Azure OpenAI/AI Foundry, Power Platform."
+
+[[rubric]]
+name = "Automation and RPA"
+weight = 20
+description = "Built workflows or bots (Power Automate, UiPath, Automation Anywhere, Python)."
+
+[[rubric]]
+name = "LLM and GenAI delivery"
+weight = 20
+description = "Shipped GenAI work: agents, RAG, prompt engineering, evaluations."
+
+[[rubric]]
+name = "Enterprise integration"
+weight = 15
+description = "ServiceNow, SharePoint, Graph API, or similar enterprise systems."
+
+[[rubric]]
+name = "Responsible AI awareness"
+weight = 10
+description = "Evidence of governance, security, privacy or responsible-AI practice."
+
+[[rubric]]
+name = "Communication and community"
+weight = 10
+description = "Talks, blogs, open-source contributions, certifications (e.g. PL-200, AI-102, AI-900)."
+
+[search]
+candidates_per_day = 10
+minimum_score = 55          # out of 100; candidates below this are dropped
+# Public, professional sources only. LinkedIn is excluded on purpose: its terms
+# prohibit automated collection. Use LinkedIn Recruiter by hand for that channel.
+allowed_domains = [
+  "github.com",
+  "huggingface.co",
+  "kaggle.com",
+  "medium.com",
+  "dev.to",
+  "sessionize.com",
+  "learn.microsoft.com",
+  "techcommunity.microsoft.com",
+  "stackoverflow.com",
+]
