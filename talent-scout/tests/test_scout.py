@@ -49,7 +49,7 @@ def test_missing_criteria_count_as_zero():
 
 
 def test_rank_filters_sorts_and_limits():
-    ranked = rank([make("Low", 1), make("Mid", 3), make("High", 5)], CONFIG.rubric, minimum_score=55, limit=1)
+    ranked = rank([make("Low", 1), make("Mid", 3), make("High", 5)], CONFIG.rubric, 55, 1, CONFIG.location_terms)
     assert [r.candidate.name for r in ranked] == ["High"]
 
 
@@ -66,7 +66,7 @@ def test_digest_escapes_untrusted_text():
     c = make("Eve", 5)
     c.headline = "<script>alert(1)</script>"
     c.profile_url = "javascript:alert(1)"
-    html = render_html(CONFIG, date(2026, 10, 6), rank([c], CONFIG.rubric, 0, 10))
+    html = render_html(CONFIG, date(2026, 10, 6), rank([c], CONFIG.rubric, 0, 10, CONFIG.location_terms))
     assert "<script>" not in html
     assert 'href="javascript:' not in html
 
@@ -74,3 +74,14 @@ def test_digest_escapes_untrusted_text():
 def test_empty_digest_and_subject():
     assert "No new candidates" in render_html(CONFIG, date(2026, 10, 6), [])
     assert subject(CONFIG, date(2026, 10, 6), 1) == "[Talent Scout] AI Associate: 1 new candidate – 06 Oct 2026"
+
+
+@pytest.mark.parametrize(
+    "location, kept",
+    [("Singapore", True), ("Kuala Lumpur, MY", True), ("Makati City", True), ("Ho Chi Minh City", True),
+     ("Australia", False), ("Not specified", False), ("", False)],
+)
+def test_rank_keeps_only_target_locations(location, kept):
+    c = make("Loc", 5)
+    c.location = location
+    assert bool(rank([c], CONFIG.rubric, 0, 10, CONFIG.location_terms)) is kept

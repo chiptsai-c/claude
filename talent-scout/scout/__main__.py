@@ -33,7 +33,7 @@ def main() -> int:
         return 1
 
     fresh = [c for c in candidates if c.profile_url not in seen]
-    ranked = rank(fresh, config.rubric, config.minimum_score, config.candidates_per_day)
+    ranked = rank(fresh, config.rubric, config.minimum_score, config.candidates_per_day, config.location_terms)
     html = digest.render_html(config, today, ranked)
     print(f"Found {len(candidates)}, new {len(fresh)}, shortlisted {len(ranked)}")
 

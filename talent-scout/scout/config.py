@@ -15,6 +15,7 @@ class Config:
     title: str
     team: str
     locations: list[str]
+    location_terms: list[str]  # countries plus their cities, lower-case
     summary: str
     rubric: list[Criterion]
     candidates_per_day: int
@@ -32,7 +33,8 @@ def load_config(path: Path) -> Config:
     return Config(
         title=role["title"],
         team=role["team"],
-        locations=role["locations"],
+        locations=list(role["locations"]),
+        location_terms=[t.lower() for country, cities in role["locations"].items() for t in [country, *cities]],
         summary=role["summary"].strip(),
         rubric=rubric,
         candidates_per_day=search["candidates_per_day"],

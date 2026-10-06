@@ -44,10 +44,26 @@ def test_research_resumes_after_pause_turn():
     assert len(client.calls) == 2
     first = client.calls[0]
     assert first["fallbacks"] == "default"
-    assert first["tools"][0]["allowed_domains"] == CONFIG.allowed_domains
+    assert [t["name"] for t in first["tools"]] == ["web_search", "web_fetch"]
+    assert all(t["allowed_domains"] == CONFIG.allowed_domains for t in first["tools"])
     assert "github.com/bob" in first["messages"][0]["content"]
 
 
 def test_research_raises_on_refusal():
     with pytest.raises(agent.ScoutError, match="declined"):
         agent.research(FakeClient([msg("refusal")]), CONFIG, exclude=[])
+
+
+def test_api_error_becomes_scout_error():
+    import anthropic
+    import httpx2 as httpx
+
+    class Failing(FakeClient):
+        def _stream(self, **kwargs):
+            request = httpx.Request("POST", "https://api.anthropic.com/v1/messages")
+            raise anthropic.BadRequestError(
+                "domain not accessible", response=httpx.Response(400, request=request), body=None
+            )
+
+    with pytest.raises(agent.ScoutError, match="research: API error 400"):
+        agent.research(Failing([]), CONFIG, exclude=[])

@@ -1,3 +1,5 @@
+from contextlib import contextmanager
+
 import anthropic
 
 from .config import Config
@@ -17,7 +19,11 @@ Rules you must follow:
   health, or physical appearance. Judge only skills and evidence of work.
 - Only include real people with a public profile URL you actually found in search results.
   Never invent a person, a link or a fact. Fewer good candidates beats a padded list.
-- Skip anyone who appears to be a senior leader (Director and above); this is an associate role."""
+- This is an associate role: skip anyone with more than about 5 years' experience or a
+  lead, manager or architect title.
+- Open each candidate's profile with web_fetch before including them. Include someone only
+  if the profile itself states a location in one of the target countries; report that
+  location exactly as written. Search snippets alone are not enough."""
 
 
 class ScoutError(RuntimeError):
@@ -38,7 +44,9 @@ Locations: {", ".join(config.locations)}
 Scoring rubric (score each criterion 0-5 from evidence you found):
 {rubric}
 
-Search broadly: vary queries by skill, tool, country and source. For each candidate give
+Search broadly: vary queries by skill, tool, country and source, and include country or
+city names (e.g. "Kuala Lumpur", "Manila", "Bangkok") and local community groups
+(Power Platform user groups, Microsoft Student Ambassadors) in your queries. For each candidate give
 name, headline, location, profile URL, 2-4 pieces of public evidence (with links), a 0-5
 score and one-line reason per rubric criterion, and a one-line personalised outreach hook
 that references their actual work.
@@ -47,6 +55,16 @@ Already sent on earlier days, so do not include:
 {excluded}
 
 {GUARDRAILS}"""
+
+
+@contextmanager
+def _api_errors(stage: str):
+    try:
+        yield
+    except anthropic.APIStatusError as e:
+        raise ScoutError(f"{stage}: API error {e.status_code}: {e.message}") from e
+    except anthropic.APIConnectionError as e:
+        raise ScoutError(f"{stage}: could not reach the API: {e}") from e
 
 
 def _check_stop(message, stage: str) -> None:
@@ -65,10 +83,17 @@ def research(client: anthropic.Anthropic, config: Config, exclude: list[str]) ->
             "name": "web_search",
             "max_uses": 25,
             "allowed_domains": config.allowed_domains,
-        }
+        },
+        {
+            # Opens candidate profiles to confirm location and seniority.
+            "type": "web_fetch_20260209",
+            "name": "web_fetch",
+            "max_uses": 40,
+            "allowed_domains": config.allowed_domains,
+        },
     ]
     for _ in range(MAX_CONTINUATIONS + 1):
-        with client.beta.messages.stream(
+        with _api_errors("research"), client.beta.messages.stream(
             model=MODEL,
             max_tokens=64000,
             output_config={"effort": "high"},
@@ -95,7 +120,14 @@ def research(client: anthropic.Anthropic, config: Config, exclude: list[str]) ->
 def structure(client: anthropic.Anthropic, config: Config, notes: str) -> list[Candidate]:
     """Turn research notes into validated candidate records."""
     criteria = ", ".join(f'"{c.name}"' for c in config.rubric)
-    message = client.beta.messages.parse(
+    with _api_errors("structure"):
+        message = _parse(client, criteria, notes)
+    _check_stop(message, "structure")
+    return message.parsed_output.candidates
+
+
+def _parse(client: anthropic.Anthropic, criteria: str, notes: str):
+    return client.beta.messages.parse(
         model=MODEL,
         max_tokens=16000,
         output_config={"effort": "low"},
@@ -115,5 +147,3 @@ Drop any candidate without a profile URL. Use exactly these criterion names: {cr
             }
         ],
     )
-    _check_stop(message, "structure")
-    return message.parsed_output.candidates

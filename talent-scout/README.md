@@ -5,9 +5,9 @@ An agent that runs every weekday morning. It searches public professional source
 ## How it works
 | Step | What happens |
 |---|---|
-| 1. Search | Claude searches the web with 25 searches per run, limited to the sites in `config.toml`. It skips anyone already sent in the last 90 days. |
+| 1. Search | Claude searches the web (up to 25 searches) and opens candidate profiles (up to 40) to confirm location and seniority. Both are limited to the sites in `config.toml`. It skips anyone already sent in the last 90 days. |
 | 2. Structure | The findings are turned into validated records: name, profile, evidence links, a 0–5 score per criterion, and an outreach idea. |
-| 3. Rank | The code (not the model) computes the weighted 0–100 score, drops anyone below `minimum_score`, and keeps the top 10. |
+| 3. Rank | The code (not the model) drops anyone whose stated location isn't in a target country, computes the weighted 0–100 score, drops anyone below `minimum_score`, and keeps the top 10. |
 | 4. Email | An HTML digest goes out by SMTP. The URLs that were sent are saved in `state/seen.json` so nobody repeats. |
 
 ## Set up (about 15 minutes)
@@ -25,7 +25,7 @@ An agent that runs every weekday morning. It searches public professional source
 4. Run it again without dry run to send it for real. After that it runs on its own at 08:52 SGT, Monday to Friday.
 
 ## Change what it looks for
-Edit `config.toml`: the role summary, the locations, the rubric (weights must add up to 100), candidates per day, the minimum score, and the allowed sites. No code changes are needed.
+Edit `config.toml`: the role summary, the countries and cities, the rubric (weights must add up to 100), candidates per day, the minimum score, and the allowed sites. No code changes are needed. Every allowed site must accept Claude's crawler; `stackoverflow.com`, for example, does not, and makes the run fail.
 
 ## Run locally
 ```bash
