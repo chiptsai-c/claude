@@ -1,18 +1,22 @@
 import { useState } from 'react';
 import { Flame, Star } from './icons.tsx';
-import { BADGES, pack, QUEST_LENGTH, type Profile } from './game.ts';
+import { Monster } from './Boss.tsx';
+import { BADGES, BOSS, bossRequirements, pack, QUEST_LENGTH, type Profile } from './game.ts';
 
 type Props = {
   profile: Profile;
   clockOffsetDays: number;
   onStart: () => void;
+  onBoss: () => void;
   onSkipDay: () => void;
   onReset: () => void;
 };
 
-export function Home({ profile, clockOffsetDays, onStart, onSkipDay, onReset }: Props) {
+export function Home({ profile, clockOffsetDays, onStart, onBoss, onSkipDay, onReset }: Props) {
   const [confirmReset, setConfirmReset] = useState(false);
   const { level, model } = profile;
+  const bossReqs = bossRequirements(profile);
+  const bossReady = bossReqs.every(r => r.done);
 
   return (
     <div className="home">
@@ -44,6 +48,16 @@ export function Home({ profile, clockOffsetDays, onStart, onSkipDay, onReset }: 
           </p>
         </div>
         <button className="primary big" onClick={onStart}>Start Daily Quest</button>
+      </section>
+
+      <section className={`boss-card ${bossReady ? 'ready' : 'locked'}`} aria-labelledby="boss-h">
+        <Monster mood="idle" small />
+        <div className="boss-card-text">
+          <p className="eyebrow">Boss Battle{profile.bossWins > 0 ? ` · beaten ${profile.bossWins}×` : ''}</p>
+          <h2 id="boss-h">{BOSS.name}</h2>
+          <p>{bossReady ? `${BOSS.questions} mixed questions, ${BOSS.hearts} hearts, double XP.` : bossReqs.filter(r => !r.done).map(r => r.label + (r.progress ? ` (${r.progress})` : '')).join(' · ')}</p>
+        </div>
+        <button className={bossReady ? 'primary' : 'ghost'} onClick={onBoss}>{bossReady ? 'Fight' : 'Preview'}</button>
       </section>
 
       <section aria-labelledby="map-h">

@@ -296,6 +296,86 @@ h1, h2 { margin: 0; text-wrap: balance; }
 .sorted .wrong { border-color: var(--bad); background: var(--bad-soft); }
 .sorted-to { font: 700 13px var(--mono); text-align: right; flex: none; max-width: 50%; }
 
+/* Boss Battle */
+.monster { width: 180px; height: 150px; overflow: visible; }
+.monster.small { width: 72px; height: 60px; flex: none; }
+.monster .blob { fill: var(--bad); }
+.monster .megaphone { fill: var(--marigold); stroke: var(--ink); stroke-width: 2.5; }
+.monster .papers rect { fill: var(--card); stroke: var(--ink); stroke-width: 2; }
+.monster .eye { fill: #fff; stroke: var(--ink); stroke-width: 2.5; }
+.monster .pupil { fill: #10292b; }
+.monster .brow, .monster .eyes-ko path { stroke: #10292b; stroke-width: 5; stroke-linecap: round; fill: none; }
+.monster .mouth { fill: #10292b; stroke: #10292b; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
+.monster.defeated .mouth { fill: none; }
+.monster .body { transform-origin: 90px 136px; animation: bob 2.4s ease-in-out infinite; }
+.monster .papers { animation: flutter 3s ease-in-out infinite; transform-origin: 90px 75px; }
+.monster.hit .body { animation: hit .5s ease-out; }
+.monster.defeated .body { animation: none; transform: rotate(-12deg) scale(.92); opacity: .7; }
+.monster.defeated .papers { opacity: 0; }
+.monster.gloat .body { animation: gloat .6s ease-in-out infinite alternate; }
+@keyframes bob { 50% { transform: translateY(-5px) scaleY(1.02); } }
+@keyframes flutter { 50% { transform: rotate(4deg) translateY(-3px); } }
+@keyframes hit { 0% { filter: brightness(2.2); transform: translateX(0); } 25% { transform: translateX(-8px) rotate(-4deg); } 55% { transform: translateX(6px) rotate(3deg); } 100% { filter: none; transform: none; } }
+@keyframes gloat { to { transform: rotate(4deg) translateY(-3px); } }
+
+.boss-card { display: flex; align-items: center; gap: 14px; padding: 14px; border-radius: 18px; border: 2px solid var(--bad); background: color-mix(in srgb, var(--bad) 8%, var(--card)); }
+.boss-card > button { flex: none; }
+.boss-card.locked { border-style: dashed; background: transparent; }
+.boss-card.locked .monster { filter: grayscale(1); opacity: .55; }
+.boss-card-text { flex: 1 1 150px; min-width: 0; }
+.boss-card h2 { font: 800 21px/1.15 var(--display); }
+.boss-card p:not(.eyebrow) { margin: 2px 0 0; font-size: 14px; color: var(--muted); }
+.boss-card .eyebrow { color: var(--bad); }
+
+.boss-lair, .boss-end { display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; }
+.boss-lair h1, .boss-end h1 { font: 800 clamp(30px, 8vw, 42px)/1.05 var(--display); letter-spacing: -.02em; }
+.boss-lair .eyebrow, .boss-end .eyebrow { color: var(--bad); }
+.taunt { margin: 0; font: 600 18px/1.35 var(--display); color: var(--muted); max-width: 30ch; }
+.rules { list-style: none; margin: 0; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; text-align: left; background: var(--card); border: 1px solid var(--line); border-radius: 16px; width: 100%; font-size: 15.5px; }
+.rules b { color: var(--ink); }
+.pace { border: 0; margin: 0; padding: 0; width: 100%; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.pace legend { font: 700 12px var(--mono); text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin-bottom: 8px; padding: 0; }
+.pace label { display: flex; flex-direction: column; gap: 2px; padding: 10px 6px; border-radius: 12px; border: 2px solid var(--line); background: var(--card); cursor: pointer; min-width: 0; }
+.pace label.on { border-color: var(--ink); background: color-mix(in srgb, var(--marigold) 18%, var(--card)); }
+.pace label:focus-within { outline: 3px solid var(--marigold); outline-offset: 2px; }
+.pace input { position: absolute; opacity: 0; pointer-events: none; }
+.pace b { font-size: 15px; }
+.pace small { font-size: 12px; color: var(--muted); }
+.boss-go { background: var(--bad); color: #fff; box-shadow: 0 3px 0 color-mix(in srgb, var(--bad) 55%, #000); }
+.boss-go:active:not(:disabled) { box-shadow: 0 1px 0 color-mix(in srgb, var(--bad) 55%, #000); }
+.locked-box { width: 100%; text-align: left; padding: 14px 16px; border-radius: 16px; border: 2px dashed var(--line); }
+.locked-box p { margin: 0 0 6px; }
+.locked-box ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; color: var(--muted); }
+.locked-box .done { color: var(--ok); }
+
+.arena { display: flex; flex-direction: column; gap: 14px; }
+.arena.shake { animation: shake .45s ease-out; }
+@keyframes shake { 20% { transform: translateX(-7px); } 40% { transform: translateX(6px); } 60% { transform: translateX(-4px); } 80% { transform: translateX(2px); } }
+.arena-head { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 16px; background: var(--card); border: 2px solid var(--bad); }
+.arena-stats { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.boss-name { display: flex; justify-content: space-between; gap: 8px; font-size: 15px; }
+.boss-name span { font: 700 14px var(--mono); color: var(--bad); font-variant-numeric: tabular-nums; }
+.hp { height: 12px; border-radius: 999px; background: var(--track); overflow: hidden; }
+.hp span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--bad), color-mix(in srgb, var(--bad) 60%, var(--marigold))); transition: width .5s cubic-bezier(.2, .8, .2, 1); }
+.arena-row { display: flex; justify-content: space-between; align-items: center; }
+.hearts { display: flex; gap: 3px; }
+.heart path { fill: var(--bad); }
+.heart.lost path { fill: none; stroke: var(--muted); stroke-width: 1.4; }
+.heart.lost { animation: pop .4s both; }
+.round { font: 700 13px var(--mono); color: var(--muted); }
+.timer { position: relative; height: 22px; border-radius: 999px; background: var(--track); overflow: hidden; }
+.timer span { position: absolute; inset: 0 auto 0 0; background: var(--ink); border-radius: inherit; transition: width .2s linear; }
+.timer em { position: absolute; inset: 0; display: grid; place-items: center; font: 700 12px var(--mono); font-style: normal; color: #fff; mix-blend-mode: difference; }
+.timer.urgent span { background: var(--bad); animation: blink .5s steps(2) infinite; }
+.dmg { margin: 0; font-weight: 700; }
+.dmg.hit { color: var(--ok); }
+.dmg.ouch { color: var(--bad); }
+
+.boss-end .lede { margin: 0; color: var(--muted); max-width: 40ch; }
+.boss-end .stats { width: 100%; text-align: left; }
+.badge-flash { margin: 0; display: flex; align-items: center; gap: 10px; animation: pop .5s cubic-bezier(.2, 1.6, .4, 1) both; }
+.end-actions { display: flex; flex-direction: column; gap: 10px; width: 100%; align-items: center; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }

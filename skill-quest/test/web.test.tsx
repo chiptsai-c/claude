@@ -2,7 +2,7 @@
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from '../web/src/App.tsx';
-import { itemById, pack, QUEST_LENGTH } from '../web/src/game.ts';
+import { BOSS, itemById, pack, QUEST_LENGTH, type PlayEvent } from '../web/src/game.ts';
 
 /** Lets card animations finish when a test runs with fake timers (normal-motion device). */
 const flush = () => { if (vi.isFakeTimers()) act(() => { vi.advanceTimersByTime(400); }); };
@@ -38,6 +38,16 @@ function answerCorrectly() {
     }
   }
   return item.id;
+}
+
+/** Saves two strong Daily Quests on this device so the Boss Battle is unlocked. */
+function seedUnlockedBoss() {
+  const at = Date.now() - 3_600_000;
+  const a = ['basics-1', 'basics-2', 'basics-3', 'basics-4', 'data-1', 'data-2'];
+  const b = ['data-3', 'data-4', 'spot-email', 'sort-labels', 'basics-3', 'data-4'];
+  const events: PlayEvent[] = [...a.map((id, n) => ['qa', n, id] as const), ...b.map((id, n) => ['qb', n + 10, id] as const)]
+    .map(([sessionId, n, itemId]) => ({ id: `${sessionId}-${n}`, at: at + n * 1000, itemId, outcome: 1, hintUsed: false, sessionId }));
+  localStorage.setItem('skill-quest:v1', JSON.stringify({ v: 1, events, clockOffsetDays: 0 }));
 }
 
 describe('Skill Quest web app', () => {
@@ -111,6 +121,51 @@ describe('Skill Quest web app', () => {
     else throw new Error(`First question unexpectedly has type ${item.type}`);
     expect(screen.getByText('Not quite')).toBeTruthy();
     expect(screen.getByText(itemById.get(item.id)!.explanation)).toBeTruthy();
+  });
+
+  it('keeps the boss locked until the requirements are met', () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Preview' }));
+    expect(screen.getByRole('heading', { name: BOSS.name })).toBeTruthy();
+    expect(screen.getByText(/Locked\./)).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Start battle' })).toBeNull();
+  });
+
+  it('fights and beats the boss with the timer off', () => {
+    seedUnlockedBoss();
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Fight' }));
+    fireEvent.click(screen.getByLabelText(/No timer/));
+    fireEvent.click(screen.getByRole('button', { name: 'Start battle' }));
+    expect(screen.queryByRole('timer')).toBeNull();
+    for (let q = 0; q < BOSS.questions && !screen.queryByRole('button', { name: 'See the result' }); q++) {
+      answerCorrectly();
+      expect(screen.getByText(/You hit The Oversharer/)).toBeTruthy();
+      const keep = screen.queryByRole('button', { name: 'Keep going' });
+      if (keep) fireEvent.click(keep);
+      const next = screen.queryByRole('button', { name: 'Next attack' });
+      if (next) fireEvent.click(next);
+    }
+    fireEvent.click(screen.getByRole('button', { name: 'See the result' }));
+    expect(screen.getByRole('heading', { name: `${BOSS.name} is beaten!` })).toBeTruthy();
+    expect(screen.getByText(/New badge/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Back to map' }));
+    expect(screen.getByText(/beaten 1×/)).toBeTruthy();
+    // A boss battle is not counted as a Daily Quest.
+    expect(screen.getByText('Quests').nextSibling?.textContent).toBe('2');
+  });
+
+  it('counts running out of time as a lost heart', () => {
+    seedUnlockedBoss();
+    vi.useFakeTimers();
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Fight' }));
+    fireEvent.click(screen.getByLabelText(/Standard/));
+    fireEvent.click(screen.getByRole('button', { name: 'Start battle' }));
+    expect(screen.getByRole('timer')).toBeTruthy();
+    act(() => { vi.advanceTimersByTime(61_000); });
+    expect(screen.getByText("Time's up")).toBeTruthy();
+    expect(screen.getByLabelText(`${BOSS.hearts - 1} of ${BOSS.hearts} hearts left`)).toBeTruthy();
   });
 
   it('asks before erasing progress', () => {

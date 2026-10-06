@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { DAY_MS } from '../src/adaptive/index.ts';
-import { COMBO_BONUS, deriveProfile, itemById, levelFor, pack, QUEST_LENGTH, shuffledOrder, xpFor, type PlayEvent } from '../web/src/game.ts';
+import {
+  BOSS, bossReplay, bossRequirements, bossSeconds, COMBO_BONUS, deriveProfile, itemById, levelFor, pack, pickBossItems,
+  QUEST_LENGTH, shuffledOrder, xpFor, type PlayEvent,
+} from '../web/src/game.ts';
 
 const day0 = new Date(2026, 9, 6, 9).getTime();
 const ev = (session: string, n: number, itemId: string, outcome: number, dayOffset = 0, hintUsed = false): PlayEvent => ({
@@ -57,3 +60,54 @@ describe('game rules', () => {
     }
   });
 });
+
+describe('Boss Battle rules', () => {
+  it('wins when good answers take the boss to zero, loses on three poor answers', () => {
+    expect(bossReplay([1, 1, 1, 1, 1, 1])).toMatchObject({ won: true, over: true, hearts: 3 });
+    expect(bossReplay([1, 1, 0, 1, 1, 0.5, 1, 1])).toMatchObject({ won: true });
+    expect(bossReplay([0, 1, 0, 0])).toMatchObject({ lost: true, hearts: 0, answered: 4 });
+    expect(bossReplay([1, 0.6, 1, 1, 0, 1, 0, 0.6])).toMatchObject({ lost: true, over: true, answered: 8 });
+    expect(bossReplay([1, 1])).toMatchObject({ over: false, hp: BOSS.hp - 2 * BOSS.damage });
+  });
+
+  it('ignores answers after the battle is decided', () => {
+    expect(bossReplay([0, 0, 0, 1, 1])).toMatchObject({ answered: 3, hp: BOSS.hp });
+  });
+
+  it('gives more time for formats that take longer, and none with the timer off', () => {
+    expect(bossSeconds(itemById.get('data-1')!, 'standard')).toBe(30);
+    expect(bossSeconds(itemById.get('sort-labels')!, 'standard')).toBe(60);
+    expect(bossSeconds(itemById.get('data-1')!, 'relaxed')).toBe(60);
+    expect(bossSeconds(itemById.get('data-1')!, 'off')).toBe(Infinity);
+  });
+
+  it('picks distinct questions that cover every unlocked skill', () => {
+    const model = deriveProfile(unlockEvents(), day0).model;
+    const ids = pickBossItems(model);
+    expect(ids).toHaveLength(BOSS.questions);
+    expect(new Set(ids).size).toBe(ids.length);
+    const skills = new Set(ids.map(id => itemById.get(id)!.skillId));
+    for (const s of pack.skills) if (model.isUnlocked(s.id)) expect(skills.has(s.id)).toBe(true);
+  });
+
+  it('unlocks after two quests and Safe prompting; a win gives XP, a badge and is not a Daily Quest', () => {
+    const before = deriveProfile([], day0);
+    expect(bossRequirements(before).every(r => r.done)).toBe(false);
+    const events = unlockEvents();
+    const ready = deriveProfile(events, day0);
+    expect(bossRequirements(ready).every(r => r.done)).toBe(true);
+    const battle = pickBossItems(ready.model).slice(0, 6).map((id, n) => ({ ...ev('boss1', n, id, 1, 0), mode: 'boss' as const }));
+    const after = deriveProfile([...events, ...battle], day0);
+    expect(after.bossWins).toBe(1);
+    expect(after.quests).toBe(ready.quests);
+    expect(after.badges.has('boss-slayer')).toBe(true);
+    expect(after.xp).toBeGreaterThan(ready.xp + BOSS.winXp);
+  });
+});
+
+/** Two full Daily Quests with strong basics and data answers: enough to unlock Safe prompting and the boss. */
+function unlockEvents(): PlayEvent[] {
+  const a = ['basics-1', 'basics-2', 'basics-3', 'basics-4', 'data-1', 'data-2'];
+  const b = ['data-3', 'data-4', 'spot-email', 'sort-labels', 'basics-3', 'data-4'];
+  return [...a.map((id, n) => ev('qa', n, id, 1, 0)), ...b.map((id, n) => ev('qb', n + 10, id, 1, 0))];
+}

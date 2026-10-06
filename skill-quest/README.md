@@ -16,6 +16,7 @@ The offline learning engine behind Skill Quest (design: [`docs/skill-quest-desig
 `web/` is a clickable Daily Quest built on the engine: 6 questions picked for you, "Why this question?", hints, XP, combos, levels, streaks, 7 badges, a mastery map with locked skills, and a results screen.
 
 **Interactive formats:** animated **scenes** (a captioned chat clip plays before scenario questions, with Skip and Replay), **Spot the risk** (tap the risky parts of a mock email or chat), **Sort it** (cards dealt one at a time into buckets), plus pick-one, select-all, true/false and ordering.
+**Boss Battle:** *The Oversharer* unlocks after 2 Daily Quests and once "Safe prompting" is unlocked. You get 8 harder questions (about a 60% chance each) across every unlocked skill, with no hints and double XP. Good answers damage the boss, poor answers cost one of 3 hearts, and a per-question timer runs (Standard, Relaxed at double time, or off for accessibility). Winning earns 100 XP and the Boss Slayer badge. Results are replayed from the saved answers like everything else, and boss answers also feed the adaptive engine.
 **Game feel:** generated sound effects (off until the player turns them on), phone haptics, confetti on combos and perfect runs, and a level-up celebration. All of it respects the device's reduced-motion setting and uses no media files. Everything (XP, streak, badges) is derived from the answer log saved on the device. **Demo controls** at the bottom of the home screen jump the clock forward a day so refreshers come due.
 
 ```bash
@@ -29,7 +30,7 @@ Needs Node 22.18 or later (runs TypeScript directly).
 ```bash
 cd skill-quest
 npm install
-npm test                                  # 39 engine, content, game-rule, simulation and UI tests
+npm test                                  # 47 engine, content, game-rule, simulation and UI tests
 npm run simulate -- --learners 10000      # policy comparison + quality gates (~30 s)
 npm run demo                              # three Daily Quests on the sample pack, in the terminal
 ```

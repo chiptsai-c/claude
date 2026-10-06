@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { DAY_MS, selectNext, type Pick } from '../../src/adaptive/index.ts';
 import type { Response } from '../../src/content/pack.ts';
 import { scoreAnswer } from '../../src/game/score.ts';
+import { Boss } from './Boss.tsx';
 import { Challenge } from './Challenge.tsx';
 import { buzz, confetti, isSoundOn, play, setSoundOn } from './fx.ts';
 import { deriveProfile, emptySave, itemById, levelFor, load, pack, QUEST_LENGTH, save, xpFor, type PlayEvent, type Saved } from './game.ts';
@@ -9,7 +10,7 @@ import { Home } from './Home.tsx';
 import { Flame, Speaker, Star } from './icons.tsx';
 import { Results, type QuestSummary } from './Results.tsx';
 
-export type Answered = { response: Response; outcome: number; xp: number };
+export type Answered = { response: Response | null; outcome: number; xp: number; timedOut?: boolean };
 
 type Quest = {
   sessionId: string;
@@ -33,12 +34,27 @@ export function App() {
   const [summary, setSummary] = useState<QuestSummary | null>(null);
   const [sound, setSound] = useState(isSoundOn);
   const [levelUp, setLevelUp] = useState<ReturnType<typeof levelFor> | null>(null);
+  const [bossOpen, setBossOpen] = useState(false);
   const mainRef = useRef<HTMLElement>(null);
 
   const update = (next: Saved) => { setSaved(next); save(next); };
+
+  /** Saves an answer and celebrates if the XP it earned crosses into a new level. */
+  function record(event: PlayEvent, xpGained: number) {
+    setSaved(prev => {
+      const next = { ...prev, events: [...prev.events, event] };
+      save(next);
+      return next;
+    });
+    const after = levelFor(profile.xp + xpGained);
+    if (after.level > profile.level.level) {
+      setLevelUp(after);
+      setTimeout(() => { play('levelup'); confetti(); }, 350);
+    }
+  }
   const tick = () => setClock(Date.now());
 
-  useEffect(() => { mainRef.current?.focus(); window.scrollTo?.({ top: 0 }); }, [quest?.pick.item.id, summary, quest === null]);
+  useEffect(() => { mainRef.current?.focus(); window.scrollTo?.({ top: 0 }); }, [quest?.pick.item.id, summary, quest === null, bossOpen]);
 
   function startQuest() {
     tick();
@@ -60,7 +76,7 @@ export function App() {
       id: `${quest.sessionId}-${quest.outcomes.length}`, at: now, itemId: item.id, outcome,
       hintUsed: quest.hintUsed, ms: Date.now() - quest.shownAt, sessionId: quest.sessionId,
     };
-    update({ ...saved, events: [...saved.events, event] });
+    record(event, xp);
     setQuest({ ...quest, outcomes: [...quest.outcomes, outcome], answered: { response, outcome, xp }, xp: quest.xp + xp });
 
     // Feedback you can hear and feel. Combos and level-ups get a celebration.
@@ -68,11 +84,6 @@ export function App() {
     play(outcome === 1 ? (comboHit ? 'combo' : 'correct') : outcome > 0 ? 'partial' : 'wrong');
     buzz(outcome === 1 ? 30 : outcome > 0 ? [20, 40, 20] : [60, 50, 60]);
     if (comboHit) confetti(60);
-    const after = levelFor(profile.xp + xp);
-    if (after.level > profile.level.level) {
-      setLevelUp(after);
-      setTimeout(() => { play('levelup'); confetti(); }, 350);
-    }
   }
 
   function next() {
@@ -98,7 +109,7 @@ export function App() {
   return (
     <div className="shell">
       <header className="topbar">
-        <button className="wordmark" onClick={() => { setQuest(null); setSummary(null); tick(); }} aria-label="Skill Quest home">
+        <button className="wordmark" onClick={() => { setQuest(null); setSummary(null); setBossOpen(false); tick(); }} aria-label="Skill Quest home">
           <span className="glyph" aria-hidden="true">SQ</span>
           <span><b>Skill Quest</b><small>{pack.title}</small></span>
         </button>
@@ -110,7 +121,9 @@ export function App() {
       </header>
 
       <main ref={mainRef} tabIndex={-1}>
-        {quest ? (
+        {bossOpen ? (
+          <Boss profile={profile} now={now} onRecord={record} onExit={() => { setBossOpen(false); tick(); }} />
+        ) : quest ? (
           <section className="quest" aria-labelledby="q-prompt">
             <div className="quest-head">
               <ol className="dots" aria-label={`Question ${quest.served.length} of ${QUEST_LENGTH}`}>
@@ -142,6 +155,7 @@ export function App() {
             profile={profile}
             clockOffsetDays={saved.clockOffsetDays}
             onStart={startQuest}
+            onBoss={() => { tick(); setBossOpen(true); }}
             onSkipDay={() => { update({ ...saved, clockOffsetDays: saved.clockOffsetDays + 1 }); tick(); }}
             onReset={() => { update(emptySave()); tick(); }}
           />

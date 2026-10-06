@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type { PackItem, Response } from '../../src/content/pack.ts';
 import type { Answered } from './App.tsx';
 import { play, reducedMotion } from './fx.ts';
@@ -15,9 +15,14 @@ type Props = {
   onAnswer: (r: Response) => void;
   onNext: () => void;
   last: boolean;
+  /** Boss Battles turn hints off. */
+  allowHint?: boolean;
+  /** Extra line in the feedback panel, e.g. damage dealt in a Boss Battle. */
+  feedbackExtra?: ReactNode;
+  nextLabel?: string;
 };
 
-export function Challenge({ item, skillName, why, hintUsed, onHint, answered, onAnswer, onNext, last }: Props) {
+export function Challenge({ item, skillName, why, hintUsed, onHint, answered, onAnswer, onNext, last, allowHint = true, feedbackExtra, nextLabel }: Props) {
   const [picked, setPicked] = useState<number[]>([]);
   const [sceneDone, setSceneDone] = useState(!item.scene);
   const feedbackRef = useRef<HTMLDivElement>(null);
@@ -85,7 +90,7 @@ export function Challenge({ item, skillName, why, hintUsed, onHint, answered, on
 
         {item.type === 'classify' && <ClassifyChallenge item={item} answered={answered} onAnswer={onAnswer} />}
 
-        {!done && item.hint && (
+        {!done && allowHint && item.hint && (
           hintUsed
             ? <p className="hint"><b>Hint</b>{item.hint}</p>
             : <button className="ghost" onClick={onHint}>Show a hint <small>(half XP)</small></button>
@@ -94,12 +99,13 @@ export function Challenge({ item, skillName, why, hintUsed, onHint, answered, on
         {answered && (
           <div className={`feedback ${verdict(answered.outcome).cls}`} ref={feedbackRef} tabIndex={-1} aria-live="polite">
             <div className="feedback-head">
-              <strong>{verdict(answered.outcome).label}</strong>
+              <strong>{answered.timedOut ? "Time's up" : verdict(answered.outcome).label}</strong>
               <span className="gain">+{answered.xp} XP</span>
             </div>
             <p>{item.explanation}</p>
+            {feedbackExtra}
             <p className="source">Explanation written by the course authors.</p>
-            <button className="primary" onClick={onNext}>{last ? 'See results' : 'Next question'}</button>
+            <button className="primary" onClick={onNext}>{nextLabel ?? (last ? 'See results' : 'Next question')}</button>
           </div>
         )}
         </>
@@ -191,7 +197,7 @@ function ClassifyChallenge({ item, answered, onAnswer }: { item: Extract<PackIte
   };
 
   if (done) {
-    const response = answered.response as number[];
+    const response = (answered.response ?? []) as number[];
     return (
       <ul className="sorted">
         {item.cards.map((c, i) => {
@@ -199,7 +205,7 @@ function ClassifyChallenge({ item, answered, onAnswer }: { item: Extract<PackIte
           return (
             <li key={i} className={ok ? 'right' : 'wrong'}>
               <span>{c.text}</span>
-              <span className="sorted-to">{ok ? item.buckets[c.bucket] : <>{item.buckets[response[i]!]} → <b>{item.buckets[c.bucket]}</b></>}</span>
+              <span className="sorted-to">{ok ? item.buckets[c.bucket] : <>{item.buckets[response[i]!] ?? 'Not sorted'} → <b>{item.buckets[c.bucket]}</b></>}</span>
             </li>
           );
         })}
