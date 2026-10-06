@@ -12,14 +12,23 @@ The offline learning engine behind Skill Quest (design: [`docs/skill-quest-desig
 | Scoring | `src/game/score.ts` | Deterministic 0–1 scoring with partial credit. AI never changes a score |
 | Content | `src/content/` | Pack types, author-friendly validator, sample pack *Responsible AI & Copilot Essentials* |
 
+## Play it (web prototype)
+`web/` is a clickable Daily Quest built on the engine: 6 questions picked for you, "Why this question?", hints, XP, combos, levels, streaks, 7 badges, a mastery map with locked skills, and a results screen. Everything (XP, streak, badges) is derived from the answer log saved on the device. **Demo controls** at the bottom of the home screen jump the clock forward a day so refreshers come due.
+
+```bash
+npm run dev               # open the local URL on your laptop or phone (same Wi-Fi)
+npm run build             # web/dist: deploy to Azure Static Web Apps; installable, works offline (service worker)
+npm run build:artifact    # web/artifact/index.html: one self-contained page to share as a single link
+```
+
 ## Run it
 Needs Node 22.18 or later (runs TypeScript directly).
 ```bash
 cd skill-quest
 npm install
-npm test                                  # 28 unit, content and simulation tests
+npm test                                  # 37 engine, content, game-rule, simulation and UI tests
 npm run simulate -- --learners 10000      # policy comparison + quality gates (~30 s)
-npm run demo                              # three Daily Quests on the sample pack, with reasons
+npm run demo                              # three Daily Quests on the sample pack, in the terminal
 ```
 
 ## Simulation results (10,000 learners per policy, 30 days, 8 questions a session)

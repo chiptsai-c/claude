@@ -1,0 +1,11 @@
+{
+  "name": "Skill Quest",
+  "short_name": "Skill Quest",
+  "description": "A Daily Quest on responsible AI and Copilot that adapts to you and works offline.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#10292b",
+  "theme_color": "#10292b",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}
