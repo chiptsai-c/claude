@@ -1,0 +1,26 @@
+name: Skill Quest engine
+
+on:
+  push:
+    paths: ['skill-quest/**', '.github/workflows/skill-quest.yml']
+  pull_request:
+    paths: ['skill-quest/**', '.github/workflows/skill-quest.yml']
+
+jobs:
+  engine:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: skill-quest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: skill-quest/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - name: Simulate 10,000 learners per policy (fails on any quality gate)
+        run: npm run simulate -- --learners 10000

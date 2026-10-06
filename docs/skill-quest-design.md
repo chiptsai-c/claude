@@ -102,7 +102,7 @@ Gamification exists to drive **learning behaviour**, not screen time. Every mech
 | **Daily challenge** | Variety | Same challenge for everyone that day — great for team chat ("did you get it?") |
 | **"Why this question?"** | Trust in the AI | One tap shows the engine's reason: *"You missed this 3 days ago."* |
 
-**Difficulty in the "flow zone":** the engine targets a 70–85% predicted success rate per item — hard enough to learn, easy enough to keep going.
+**Difficulty in the "flow zone":** the engine targets about 70% predicted success per item — hard enough to learn, easy enough to keep going. (Tuned by simulation; see §15.)
 
 **Reward schedule:** small, frequent, predictable rewards (XP per answer), medium milestone rewards (badge per skill mastered), rare big moments (chapter unlock, boss cleared, with animation and sound — reuse the motion style from `app/`).
 
@@ -137,7 +137,7 @@ Three small, well-understood algorithms. No black box.
 
 3. **Item selector — weighted scoring.**
    ```
-   score(item) = w1 · closeness(P(correct), 0.78)     // flow zone
+   score(item) = w1 · closeness(P(correct), 0.70)     // flow zone
                + w2 · reviewDue(item)                  // forgetting curve
                + w3 · skillPriority(skill)             // curriculum / mandatory topics
                + w4 · novelty(item)                    // avoid repeats in session
@@ -397,5 +397,27 @@ skill-quest/
 | Review this design and confirm decisions in §13 | Sponsor / Senior Manager SEA IT | +1 week | Open |
 | Nominate content owner and draft 60–80 items | L&D / SME | +2 weeks | Open |
 | Start DPIA and AI use-case registration | Governance | +2 weeks | Open |
-| Scaffold `skill-quest/` from the `app/` stack; build adaptive engine + simulated-learner tests | Engineering | +3 weeks | Open |
+| Scaffold `skill-quest/` from the `app/` stack; build adaptive engine + simulated-learner tests | Engineering | +3 weeks | **Done** (see §15) |
 | Clickable prototype test with 10 users | UX | +2 weeks | Open |
+
+---
+
+## 15. Build progress: adaptive engine (done)
+
+The T0 adaptive engine is built in [`skill-quest/`](../skill-quest/README.md): skill model, FSRS spaced repetition, event-sourced learner model, explainable selector, deterministic scoring, content validator and a sample *Responsible AI & Copilot Essentials* pack. 28 tests pass; CI simulates 10,000 learners per policy on every change and fails if any quality gate slips.
+
+**Simulation results (10,000 learners, 30 days):**
+
+| Policy | Skills truly mastered | Frustrated sessions | Success rate |
+|---|---|---|---|
+| **Adaptive** | **38.5%** | **4.2%** | 74.8% |
+| Linear course | 30.9% | 48.6% | 47.9% |
+| Random | 6.8% | 65.0% | 36.8% |
+
+**What the simulation changed in the design:**
+1. **Target success lowered from 78% to 70%.** At 78% the engine was too gentle and produced fewer mastered skills than a linear course. 70% gives the best balance; the full trade-off table is in the engine README.
+2. **Faster-adapting skill estimates.** The first version's estimates lagged behind improving players and over-drilled skills they already knew. Fixed, and covered by a calibration gate.
+3. **Honest explanations.** Small packs sometimes leave no well-matched question, so "Why this question?" now says "Warm-up" or "Stretch question" instead of always claiming "right-sized".
+4. **Authoring rule:** 10–15 questions per skill, spread across difficulties.
+
+**Known trade-off for leadership:** the adaptive engine builds *deeper* mastery with far less frustration, while a linear course spreads *shallower* knowledge across more topics. For compliance topics that need proven competence, depth is the right choice. Pilot data must confirm the simulated results before they are quoted as outcomes.
